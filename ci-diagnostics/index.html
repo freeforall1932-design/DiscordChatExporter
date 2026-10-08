@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DiscordChatExporter</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%235865F2'/%3E%3Cpath d='M8 20.5V11.5a1 1 0 0 1 1.6-.8l5.6 4.2a1 1 0 0 0 1.2 0l5.6-4.2a1 1 0 0 1 1.6.8v9a1.5 1.5 0 0 1-1.5 1.5H9.5A1.5 1.5 0 0 1 8 20.5Z' fill='white'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="/app.css" />
+  </head>
+  <body>
+    <svg class="icon-sprite" aria-hidden="true">
+      <symbol id="i-server" viewBox="0 0 24 24">
+        <rect x="3" y="4" width="18" height="7" rx="2" />
+        <rect x="3" y="13" width="18" height="7" rx="2" />
+        <circle cx="7" cy="7.5" r="1" />
+        <circle cx="7" cy="16.5" r="1" />
+      </symbol>
+      <symbol id="i-hash" viewBox="0 0 24 24">
+        <path d="M5 9h14M5 15h14M10 4 8 20M16 4l-2 16" />
+      </symbol>
+      <symbol id="i-chat" viewBox="0 0 24 24">
+        <path d="M21 12a8 8 0 0 1-8 8H8l-5 3 1.4-4.2A8 8 0 0 1 13 4a8 8 0 0 1 8 8Z" />
+      </symbol>
+      <symbol id="i-download" viewBox="0 0 24 24">
+        <path d="M12 3v12M7 11l5 5 5-5M4 20h16" />
+      </symbol>
+      <symbol id="i-globe" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9S14.5 18.4 12 21c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3Z" />
+      </symbol>
+      <symbol id="i-help" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M9.5 9.5a2.6 2.6 0 1 1 3.6 2.4c-.7.3-1.1.9-1.1 1.6v.5" />
+        <circle cx="12" cy="17" r="0.6" />
+      </symbol>
+      <symbol id="i-terminal" viewBox="0 0 24 24">
+        <rect x="3" y="4" width="18" height="16" rx="2" />
+        <path d="m7 9 3 3-3 3M13 15h4" />
+      </symbol>
+      <symbol id="i-key" viewBox="0 0 24 24">
+        <circle cx="8" cy="12" r="3.5" />
+        <path d="M11.5 12H21M18 12v3M15 12v2.5" />
+      </symbol>
+      <symbol id="i-play" viewBox="0 0 24 24">
+        <path d="M7 4.5 19 12 7 19.5V4.5Z" />
+      </symbol>
+      <symbol id="i-stop" viewBox="0 0 24 24">
+        <rect x="6" y="6" width="12" height="12" rx="2" />
+      </symbol>
+      <symbol id="i-eye" viewBox="0 0 24 24">
+        <path d="M2.5 12S6 6 12 6s9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+        <circle cx="12" cy="12" r="3" />
+      </symbol>
+      <symbol id="i-eye-off" viewBox="0 0 24 24">
+        <path d="M4 5l16 14M6.6 7.2C3.9 8.9 2.5 12 2.5 12S6 18 12 18c1.6 0 3-.4 4.2-1M10 6.3A9.6 9.6 0 0 1 12 6c6 0 9.5 6 9.5 6a17 17 0 0 1-2.6 3.2" />
+      </symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24">
+        <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z" />
+      </symbol>
+      <symbol id="i-sun" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19" />
+      </symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24">
+        <rect x="9" y="9" width="12" height="12" rx="2" />
+        <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
+      </symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24">
+        <path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13M10 11v6M14 11v6" />
+      </symbol>
+      <symbol id="i-bolt" viewBox="0 0 24 24">
+        <path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" />
+      </symbol>
+      <symbol id="i-logo" viewBox="0 0 24 24">
+        <path
+          d="M8.6 5.4a12 12 0 0 1 6.8 0l.5-1.1a14 14 0 0 1 3.6 1.1C21.6 8.6 22.4 12.5 22 16.4a15 15 0 0 1-4.6 2.3 11 11 0 0 1-1-1.6 10 10 0 0 0 1.5-.7 8.9 8.9 0 0 1-1-.5 10.6 10.6 0 0 1-9.8 0 9 9 0 0 1-1 .5 10 10 0 0 0 1.5.7 11 11 0 0 1-1 1.6A15 15 0 0 1 2 16.4c-.4-3.9.4-7.8 2.5-11a14 14 0 0 1 3.6-1.1ZM9 12.8c0 .9.7 1.6 1.5 1.6s1.4-.7 1.4-1.6-.6-1.6-1.4-1.6S9 11.9 9 12.8Zm4.6 0c0 .9.6 1.6 1.4 1.6s1.5-.7 1.5-1.6-.7-1.6-1.5-1.6-1.4.7-1.4 1.6Z"
+        />
+      </symbol>
+    </svg>
+
+    <header class="topbar">
+      <div class="brand">
+        <svg class="brand-logo"><use href="#i-logo" /></svg>
+        <div class="brand-text">
+          <h1 id="brand-name">DiscordChatExporter</h1>
+          <p class="muted" id="brand-meta">connecting to the local server…</p>
+        </div>
+      </div>
+
+      <div class="token">
+        <div class="token-field">
+          <svg class="icon"><use href="#i-key" /></svg>
+          <input
+            id="token"
+            type="password"
+            placeholder="Discord token"
+            title="Discord token — needed by most commands"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button id="token-reveal" class="icon-button" type="button" title="Show token">
+            <svg class="icon"><use href="#i-eye" /></svg>
+          </button>
+        </div>
+        <label class="check" title="The token is stored in this browser's local storage only">
+          <input type="checkbox" id="token-remember" checked />
+          Remember
+        </label>
+        <button id="token-clear" class="btn ghost" type="button" title="Forget the saved token">
+          <svg class="icon"><use href="#i-trash" /></svg>
+        </button>
+      </div>
+
+      <div class="topbar-actions">
+        <span id="status" class="pill idle">Idle</span>
+        <button id="theme-toggle" class="icon-button" type="button" title="Switch theme">
+          <svg class="icon"><use href="#i-moon" /></svg>
+        </button>
+      </div>
+    </header>
+
+    <div id="network-warning" class="notice hidden">
+      The server is bound to all network interfaces. Anyone on your network can use this page
+      (and any token you enter here) while it's running.
+    </div>
+
+    <main>
+      <aside class="sidebar">
+        <nav id="command-list" aria-label="Commands"></nav>
+        <div class="sidebar-footer muted">
+          <div>Working directory</div>
+          <code id="working-dir">—</code>
+        </div>
+      </aside>
+
+      <section class="workspace">
+        <header class="command-header">
+          <div>
+            <h2 id="command-title">Loading…</h2>
+            <p id="command-description" class="muted"></p>
+          </div>
+          <div class="command-badges">
+            <span id="command-name" class="badge"></span>
+            <span id="command-token-badge" class="badge hidden">needs token</span>
+          </div>
+        </header>
+
+        <div class="tabs" role="tablist" aria-label="Panels">
+          <button
+            id="tab-options"
+            class="tab"
+            type="button"
+            role="tab"
+            aria-selected="true"
+            aria-controls="panel-options"
+          >
+            Options
+          </button>
+          <button
+            id="tab-output"
+            class="tab"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="panel-output"
+          >
+            Output
+            <span id="output-dot" class="dot"></span>
+          </button>
+          <button
+            id="tab-debug"
+            class="tab"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="panel-debug"
+          >
+            Debug
+            <span id="debug-count" class="count"></span>
+          </button>
+        </div>
+
+        <div class="tab-panels">
+          <div
+            id="panel-options"
+            class="tab-panel active"
+            data-panel="options"
+            role="tabpanel"
+            aria-labelledby="tab-options"
+          >
+            <form id="command-form" autocomplete="off" onsubmit="return false"></form>
+
+            <details class="raw">
+              <summary>
+                <svg class="icon"><use href="#i-bolt" /></svg>
+                Run a custom command line
+              </summary>
+              <p class="muted">
+                The full CLI is available here, for example
+                <code>export --help</code>, <code>channels -g 123 --include-threads all</code> or
+                <code>exportall -o ./exports/ --parallel 3</code>.
+              </p>
+              <div class="raw-row">
+                <input
+                  id="raw-input"
+                  type="text"
+                  placeholder="export --help"
+                  spellcheck="false"
+                  autocomplete="off"
+                />
+                <button id="raw-run" class="btn" type="button">
+                  <svg class="icon"><use href="#i-play" /></svg>
+                  <span>Run</span>
+                </button>
+              </div>
+            </details>
+
+            <p class="shortcuts muted">
+              Shortcuts: <kbd>Alt</kbd>+<kbd>1-9</kbd> switch command ·
+              <kbd>Ctrl</kbd>+<kbd>Enter</kbd> run · <kbd>Esc</kbd> cancel ·
+              <kbd>Ctrl</kbd>+<kbd>L</kbd> clear output
+            </p>
+          </div>
+
+          <div
+            id="panel-output"
+            class="tab-panel"
+            data-panel="output"
+            role="tabpanel"
+            aria-labelledby="tab-output"
+          >
+            <section class="console">
+              <header class="console-header">
+                <span id="console-title" class="console-title">Output</span>
+                <span id="run-badge" class="badge hidden"></span>
+                <span class="spacer"></span>
+                <div id="progress-wrap" class="progress hidden">
+                  <div class="progress-track">
+                    <div id="progress-bar" class="progress-bar"></div>
+                  </div>
+                  <span id="progress-label" class="muted">0%</span>
+                </div>
+                <label class="check">
+                  <input type="checkbox" id="autoscroll" checked /> Autoscroll
+                </label>
+                <button id="log-download" class="icon-button" type="button" title="Download log">
+                  <svg class="icon"><use href="#i-download" /></svg>
+                </button>
+                <button id="log-clear" class="icon-button" type="button" title="Clear output">
+                  <svg class="icon"><use href="#i-trash" /></svg>
+                </button>
+              </header>
+              <pre id="log" tabindex="0">Press “Run” to execute the selected command.</pre>
+            </section>
+          </div>
+
+          <div
+            id="panel-debug"
+            class="tab-panel"
+            data-panel="debug"
+            role="tabpanel"
+            aria-labelledby="tab-debug"
+          >
+            <div class="debug">
+              <div class="debug-toolbar">
+                <button id="debug-refresh" class="btn ghost" type="button">
+                  <svg class="icon"><use href="#i-bolt" /></svg>
+                  <span>Refresh</span>
+                </button>
+                <button id="debug-download" class="btn ghost" type="button">
+                  <svg class="icon"><use href="#i-download" /></svg>
+                  <span>Save debug info</span>
+                </button>
+                <label class="check">
+                  <input type="checkbox" id="debug-follow" checked /> Follow
+                </label>
+                <span class="spacer"></span>
+                <span id="debug-updated" class="muted"></span>
+              </div>
+
+              <dl id="debug-env" class="debug-env"></dl>
+
+              <div class="debug-section-title">Recent activity</div>
+              <div id="debug-events" class="debug-events">
+                <div class="debug-empty">Loading…</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <footer class="run-bar">
+          <div class="cmdline" title="This is the exact command that will be executed">
+            <svg class="icon"><use href="#i-terminal" /></svg>
+            <code id="cmdline-preview"></code>
+            <button id="cmdline-copy" class="icon-button" type="button" title="Copy command">
+              <svg class="icon"><use href="#i-copy" /></svg>
+            </button>
+          </div>
+
+          <div class="run-actions">
+            <button id="run" class="btn primary" type="button">
+              <svg class="icon"><use href="#i-play" /></svg>
+              <span>Run</span>
+            </button>
+            <button id="cancel" class="btn danger" type="button" disabled>
+              <svg class="icon"><use href="#i-stop" /></svg>
+              <span>Cancel</span>
+            </button>
+            <label class="check">
+              <input type="checkbox" id="advanced-toggle" />
+              Advanced options
+            </label>
+            <span class="spacer"></span>
+            <span id="validation" class="validation"></span>
+          </div>
+        </footer>
+      </section>
+
+    </main>
+
+    <div id="toasts" class="toasts"></div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

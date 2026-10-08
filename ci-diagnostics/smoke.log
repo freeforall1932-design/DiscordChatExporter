@@ -1,0 +1,225 @@
++ BIN=./publish/DiscordChatExporter.Cli
++ PORT=5155
++ BASE=http://127.0.0.1:5155
++ info 'starting the server on port 5155'
++ echo '::notice title=smoke::starting the server on port 5155'
+::notice title=smoke::starting the server on port 5155
++ ./publish/DiscordChatExporter.Cli gui --port 5155 --host any --no-browser
++ GUI_PID=2647
++ trap 'kill "${GUI_PID}" 2>/dev/null || true' EXIT
++ READY=0
+++ seq 1 60
++ for _ in $(seq 1 60)
++ curl -sf http://127.0.0.1:5155/api/info -o info.json
++ kill -0 2647
++ sleep 0.5
++ for _ in $(seq 1 60)
++ curl -sf http://127.0.0.1:5155/api/info -o info.json
++ READY=1
++ break
++ '[' 1 '!=' 1 ']'
+++ tr '\n' ' '
+++ head -c 300
++ info 'server output:  DiscordChatExporter 999.9.9 Web interface: http://localhost:5155/ Debug information: http://localhost:5155/api/debug  The interface is bound to all network interfaces, so anyone on your network can access it (and the Discord token you enter) while it'\''s running.  Available commands: guilds channels '
++ echo '::notice title=smoke::server output:  DiscordChatExporter 999.9.9 Web interface: http://localhost:5155/ Debug information: http://localhost:5155/api/debug  The interface is bound to all network interfaces, so anyone on your network can access it (and the Discord token you enter) while it'\''s running.  Available commands: guilds channels '
+::notice title=smoke::server output:  DiscordChatExporter 999.9.9 Web interface: http://localhost:5155/ Debug information: http://localhost:5155/api/debug  The interface is bound to all network interfaces, so anyone on your network can access it (and the Discord token you enter) while it's running.  Available commands: guilds channels 
++ echo '--- /api/info ---'
+--- /api/info ---
++ python3 -m json.tool info.json
++ sed -n 1,60p
+{
+    "name": "DiscordChatExporter",
+    "version": "999.9.9",
+    "executableName": "DiscordChatExporter.Cli",
+    "workingDirectory": "/home/runner/work/DiscordChatExporter/DiscordChatExporter",
+    "startedAt": "2026-10-08T13:59:56.9739054+00:00",
+    "isNetworkExposed": true,
+    "hasEnvironmentToken": false,
+    "commands": [
+        {
+            "name": "guilds",
+            "title": "List servers",
+            "description": "Gets the list of accessible servers.",
+            "group": "Discover",
+            "icon": "server",
+            "requiresToken": true,
+            "order": 0,
+            "options": [
+                {
+                    "name": "bot",
+                    "shortName": "b",
+                    "label": "Bot token (deprecated)",
+                    "description": "This option doesn't do anything. Kept for backwards compatibility.",
+                    "kind": "bool",
+                    "isRequired": false,
+                    "isSequence": false,
+                    "hasDefault": true,
+                    "defaultValue": "false",
+                    "requiresToken": false,
+                    "isAdvanced": true
+                },
+                {
+                    "name": "respect-rate-limits",
+                    "label": "Respect advisory rate limits",
+                    "description": "Whether to respect advisory rate limits. If disabled, only hard rate limits (i.e., 429 responses) will be respected.",
+                    "kind": "bool",
+                    "isRequired": false,
+                    "isSequence": false,
+                    "hasDefault": true,
+                    "defaultValue": "true",
+                    "requiresToken": false,
+                    "isAdvanced": true
+                }
+            ]
+        },
+        {
+            "name": "channels",
+            "title": "List channels",
+            "description": "Get the list of channels in a server.",
+            "group": "Discover",
+            "icon": "hash",
+            "requiresToken": true,
+            "order": 1,
+            "options": [
+                {
+                    "name": "guild",
+                    "shortName": "g",
+                    "label": "Server ID",
+                    "description": "Server ID.",
+                    "kind": "text",
++ info 'checking the command catalog'
++ echo '::notice title=smoke::checking the command catalog'
+::notice title=smoke::checking the command catalog
++ python3 -
+commands: ['channels', 'dm', 'export', 'exportall', 'exportdm', 'exportguild', 'guide', 'guilds']
+export option kinds: {'channel': 'list', 'output': 'path', 'format': 'select', 'after': 'date', 'before': 'date', 'partition': 'partition', 'include-threads': 'select', 'filter': 'filter', 'parallel': 'number', 'reverse': 'bool', 'markdown': 'bool', 'media': 'bool', 'reuse-media': 'bool', 'media-dir': 'path', 'dateformat': 'text', 'locale': 'text', 'utc': 'bool', 'fuck-russia': 'bool', 'bot': 'bool', 'respect-rate-limits': 'bool'}
+OK
++ info 'running the guide command through the API'
++ echo '::notice title=smoke::running the guide command through the API'
+::notice title=smoke::running the guide command through the API
++ curl -sf -X POST http://127.0.0.1:5155/api/runs -H 'Content-Type: application/json' -d '{"command":"guide"}'
++ python3 -m json.tool run.json
+{
+    "id": "4d9ff4f8532b",
+    "command": "guide",
+    "commandLine": "DiscordChatExporter.Cli guide",
+    "state": "running",
+    "startedAt": "2026-10-08T13:59:57.5415557+00:00",
+    "cursor": 0,
+    "output": ""
+}
+++ python3 -c 'import json;print(json.load(open('\''run.json'\''))['\''id'\''])'
++ RUN_ID=4d9ff4f8532b
++ python3 - 5155 4d9ff4f8532b
+state: succeeded exit code: 0
+command line: DiscordChatExporter.Cli guide
+output: 'To get the token for your personal account:\n *  Automating user accounts is technically against TOS — USE AT YOUR OWN RISK!\n 1. Open Discord in your web browser and login\n 2. Open any server or direct message channel\n 3. Press Ctrl+Shift+I to show developer tools\n 4. Navigate to the Network tab\n 5. '
+OK
++ info 'checking that invalid requests are rejected'
++ echo '::notice title=smoke::checking that invalid requests are rejected'
+::notice title=smoke::checking that invalid requests are rejected
+++ curl -s -o error.json -w '%{http_code}' -X POST http://127.0.0.1:5155/api/runs -H 'Content-Type: application/json' -d '{"command":"channels","options":{}}'
++ STATUS=400
++ cat error.json
+{"message":"The command can\u0027t be run yet.","details":["A Discord token is required. Enter it in the field at the top.","\u0027Server ID\u0027 is required."]}+ echo
+
++ '[' 400 = 400 ']'
++ python3 -
+{'message': "The command can't be run yet.", 'details': ['A Discord token is required. Enter it in the field at the top.', "'Server ID' is required."]}
+OK
++ info 'checking that cross-origin requests are rejected'
++ echo '::notice title=smoke::checking that cross-origin requests are rejected'
+::notice title=smoke::checking that cross-origin requests are rejected
+++ curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:5155/api/runs -H 'Content-Type: application/json' -H 'Origin: https://evil.example.com' -d '{"command":"guide"}'
++ STATUS=403
++ '[' 403 = 403 ']'
++ info 'checking that unknown commands are rejected'
++ echo '::notice title=smoke::checking that unknown commands are rejected'
+::notice title=smoke::checking that unknown commands are rejected
+++ curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:5155/api/runs -H 'Content-Type: application/json' -d '{"command":"nope"}'
++ STATUS=400
++ '[' 400 = 400 ']'
++ info 'checking the run list'
++ echo '::notice title=smoke::checking the run list'
+::notice title=smoke::checking the run list
++ curl -sf http://127.0.0.1:5155/api/runs
++ python3 -m json.tool
++ sed -n 1,40p
+[
+    {
+        "id": "4d9ff4f8532b",
+        "command": "guide",
+        "commandLine": "DiscordChatExporter.Cli guide",
+        "state": "succeeded",
+        "exitCode": 0,
+        "startedAt": "2026-10-08T13:59:57.5415557+00:00",
+        "finishedAt": "2026-10-08T13:59:57.5508103+00:00",
+        "cursor": 1396,
+        "output": ""
+    }
+]
++ info 'running a custom command line'
++ echo '::notice title=smoke::running a custom command line'
+::notice title=smoke::running a custom command line
++ curl -sf -X POST http://127.0.0.1:5155/api/runs -H 'Content-Type: application/json' -d '{"rawCommandLine":"guide"}'
+++ python3 -c 'import json;print(json.load(open('\''raw-run.json'\''))['\''id'\''])'
++ RAW_ID=70ce56ab2d82
++ python3 - 5155 70ce56ab2d82
+state: succeeded output: 'To get the token for your personal account:\n *  Automating user accounts is technically against TOS — USE AT YOUR OWN RISK!\n 1. Open Discord in your web browser and login\n 2. Open any server or direct'
+OK
++ info 'checking the assets are served'
++ echo '::notice title=smoke::checking the assets are served'
+::notice title=smoke::checking the assets are served
++ curl -sf http://127.0.0.1:5155/ -o index.html
++ curl -sf http://127.0.0.1:5155/app.js -o served-app.js
++ curl -sf http://127.0.0.1:5155/app.css -o served-app.css
++ diff -q DiscordChatExporter.Cli/Gui/Assets/app.js served-app.js
++ diff -q DiscordChatExporter.Cli/Gui/Assets/app.css served-app.css
++ diff -q DiscordChatExporter.Cli/Gui/Assets/index.html index.html
++ info 'checking the log download endpoint'
++ echo '::notice title=smoke::checking the log download endpoint'
+::notice title=smoke::checking the log download endpoint
++ curl -sf http://127.0.0.1:5155/api/runs/4d9ff4f8532b/log -o run.log
++ grep -q authorization run.log
++ info 'checking the debug endpoint'
++ echo '::notice title=smoke::checking the debug endpoint'
+::notice title=smoke::checking the debug endpoint
++ curl -sf -X POST http://127.0.0.1:5155/api/runs -H 'Content-Type: application/json' -d '{"command":"guilds","options":{},"token":"smoke-test-token"}'
+++ python3 -c 'import json; print(json.load(open('\''token-run.json'\''))['\''id'\''])'
++ TOKEN_RUN_ID=98cab99eddc0
++ python3 - 5155 98cab99eddc0
+token run state: failed
++ curl -sf http://127.0.0.1:5155/api/debug -o debug.json
++ python3 -m json.tool debug.json
++ sed -n 1,24p
+{
+    "environment": {
+        "name": "DiscordChatExporter",
+        "version": "999.9.9",
+        "executableName": "DiscordChatExporter.Cli",
+        "workingDirectory": "/home/runner/work/DiscordChatExporter/DiscordChatExporter",
+        "serverUrl": "http://localhost:5155/",
+        "isNetworkExposed": true,
+        "hasEnvironmentToken": false,
+        "startedAt": "2026-10-08T13:59:56.9739054+00:00",
+        "runtime": ".NET 10.0.12",
+        "processId": 2647
+    },
+    "events": [
+        {
+            "timestamp": "13:59:56.924",
+            "level": "info",
+            "category": "server",
+            "message": "Starting 'DiscordChatExporter.Cli' v999.9.9 on http://+:5155/ from '/home/runner/work/DiscordChatExporter/DiscordChatExporter'."
+        },
+        {
+            "timestamp": "13:59:57.107",
+            "level": "info",
+            "category": "server",
++ python3 -
+events: 120 | runs: 3
+OK
++ info 'SMOKE TEST PASSED'
++ echo '::notice title=smoke::SMOKE TEST PASSED'
+::notice title=smoke::SMOKE TEST PASSED
++ kill 2647
