@@ -195,6 +195,11 @@ check(
     $("option-filter")?.value === "from:",
   `${$("command-name").textContent} / ${$("option-filter")?.value}`
 );
+check(
+  "a preset that fills an advanced option reveals it",
+  $("advanced-toggle").checked === true && $("option-filter") !== null,
+  `advanced=${$("advanced-toggle").checked}`
+);
 
 section("2. token field");
 type($("token"), "test-token-value");
@@ -399,11 +404,19 @@ check(
 check("the theme is persisted", window.localStorage.getItem("discordchatexporter.theme") !== null);
 
 section("10. advanced options");
-const basicCount = $$(".field").length;
 if ($("advanced-toggle")) {
+  // A preset may have switched this on already, so start from a known state
+  $("advanced-toggle").checked = false;
+  $("advanced-toggle").dispatchEvent(new window.Event("change", { bubbles: true }));
+  const basicCount = $$(".field").length;
+
   $("advanced-toggle").checked = true;
   $("advanced-toggle").dispatchEvent(new window.Event("change", { bubbles: true }));
-  check("advanced options are revealed", $$(".field").length > basicCount, `${basicCount} -> ${$$(".field").length}`);
+  check(
+    "advanced options are revealed",
+    $$(".field").length > basicCount,
+    `${basicCount} -> ${$$(".field").length}`
+  );
 }
 
 section("11. keyboard shortcuts");
