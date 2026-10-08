@@ -120,6 +120,11 @@ check("a command is selected on load", $("command-name").textContent.length > 0)
 check("the version is displayed", $("brand-meta").textContent.includes("999.9.9"));
 check("the working directory is displayed", $("working-dir").textContent.length > 1);
 check("the command line preview is rendered", $("cmdline-preview").textContent.length > 10);
+check(
+  "the options tab is open on a fresh page",
+  $("panel-options").classList.contains("active") && $$(".tab-panel.active").length === 1,
+  $$(".tab-panel.active").map((p) => p.id).join(",")
+);
 
 section("2. token field");
 type($("token"), "test-token-value");
@@ -396,10 +401,12 @@ check(
   tabs.join(",") === "tab-options,tab-output,tab-debug",
   tabs.join(",")
 );
-check("the options tab is open by default", $("panel-options").classList.contains("active"));
+click($("tab-options"));
+check("the options tab opens", $("panel-options").classList.contains("active"));
 check(
-  "the output panel is hidden while the options tab is open",
-  !$("panel-output").classList.contains("active")
+  "only one panel is open at a time",
+  $$(".tab-panel.active").length === 1,
+  $$(".tab-panel.active").map((p) => p.id).join(",")
 );
 
 click($("tab-output"));
