@@ -68,7 +68,7 @@ assert "gui" not in commands, "the gui command should not be exposed"
 
 for name, command in commands.items():
     assert command["title"], name
-    assert command["group"], name
+    assert command["description"], name
     for option in command["options"]:
         assert option["kind"], (name, option["name"])
         assert option["label"], (name, option["name"])
@@ -85,6 +85,21 @@ assert commands["export"]["requiresToken"] is True
 
 guild = [o for o in commands["channels"]["options"] if o["name"] == "guild"][0]
 assert guild["isRequired"] is True, "the guild option should be required"
+
+# The buttons are a single list, and the token guide is the last one, so that the sidebar
+# fits without scrolling
+order = [c["name"] for c in info["commands"]]
+assert order == [
+    "guilds",
+    "channels",
+    "dm",
+    "export",
+    "exportguild",
+    "exportdm",
+    "exportall",
+    "guide",
+], order
+assert not any("group" in c for c in info["commands"]), "the command grouping was removed"
 
 print("OK")
 PY

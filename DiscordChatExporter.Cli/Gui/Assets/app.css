@@ -283,18 +283,6 @@ main {
   scrollbar-gutter: stable;
 }
 
-.group-title {
-  margin: 12px 8px 5px;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-faint);
-}
-
-.group-title:first-child {
-  margin-top: 0;
-}
-
 .command {
   display: flex;
   align-items: flex-start;
@@ -302,8 +290,8 @@ main {
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  padding: 7px 9px;
-  margin-bottom: 2px;
+  padding: 9px 10px;
+  margin-bottom: 4px;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -1162,15 +1150,6 @@ kbd {
     align-content: start;
     gap: 3px;
     padding: 9px;
-  }
-
-  .group-title {
-    grid-column: 1 / -1;
-    margin: 7px 6px 3px;
-  }
-
-  .group-title:first-child {
-    margin-top: 0;
   }
 
   .command {

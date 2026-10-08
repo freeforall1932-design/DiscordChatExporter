@@ -48,7 +48,8 @@ token.
 
 ### 2. Pick a command
 
-Every command from the CLI is listed in the sidebar, grouped into *Discover*, *Export* and *Help*:
+Every command from the CLI is listed in the sidebar as a single list, arranged so that it fits on
+screen without scrolling — the token guide sits at the bottom, right after the export commands:
 
 | Button                   | Command       | What it does                                        |
 | ------------------------ | ------------- | --------------------------------------------------- |

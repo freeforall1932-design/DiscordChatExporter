@@ -112,9 +112,14 @@ console.log("  commands:", commands.join(", "));
 check("all 8 CLI commands are exposed as buttons", commands.length === 8, commands.join(","));
 check("the gui command is not listed", !commands.includes("gui"));
 check(
-  "commands are grouped",
-  $$(".command-group, .group-title, .group").length > 0,
-  "no group headings found"
+  "the buttons are a single list without headings",
+  $$(".group-title, .command-group").length === 0,
+  `${$$(".group-title, .command-group").length} headings found`
+);
+check(
+  "the token guide sits right after the export commands",
+  commands[commands.length - 1] === "guide" && commands[commands.length - 2] === "exportall",
+  commands.join(",")
 );
 check("a command is selected on load", $("command-name").textContent.length > 0);
 check("the version is displayed", $("brand-meta").textContent.includes("999.9.9"));
@@ -375,6 +380,22 @@ check(
   "the command list scrolls vertically only",
   /overflow-x: hidden/.test(ruleFor("#command-list")),
   ruleFor("#command-list")
+);
+check(
+  "no space is reserved for group headings",
+  !cssRules.includes(".group-title"),
+  "group-title styles are still present"
+);
+const commandPadding = parseFloat((ruleFor(".command").match(/padding: ([\d.]+)px/) || [])[1] || 0);
+const commandMargin = parseFloat(
+  (ruleFor(".command").match(/margin-bottom: ([\d.]+)px/) || [])[1] || 0
+);
+// Two lines of text (title + command name) plus the padding and the margin of each row
+const estimatedListHeight = 8 * (commandPadding * 2 + 33 + commandMargin) + 24;
+check(
+  "all buttons fit in the sidebar without scrolling",
+  estimatedListHeight < 700,
+  `estimated ${estimatedListHeight}px`
 );
 check(
   "the workspace does not scroll as a whole",

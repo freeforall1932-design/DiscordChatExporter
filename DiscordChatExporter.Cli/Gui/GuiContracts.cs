@@ -32,7 +32,6 @@ internal sealed record GuiCommandDto(
     string Name,
     string Title,
     string? Description,
-    string Group,
     string Icon,
     bool RequiresToken,
     int Order,

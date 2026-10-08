@@ -20,8 +20,9 @@ internal static class GuiCommandCatalog
     // Commands that are not meant to be exposed in the interface
     private static readonly string[] ExcludedCommandNames = ["gui"];
 
-    // Preferred display order. Commands that are not listed here are appended at the end,
-    // which makes the interface automatically pick up newly added commands.
+    // Display order of the buttons. Commands that are not listed here are appended at the
+    // end, which makes the interface automatically pick up newly added commands. The token
+    // guide is kept last so that everything fits in the sidebar without scrolling.
     private static readonly string[] CommandOrder =
     [
         "guilds",
@@ -37,29 +38,26 @@ internal static class GuiCommandCatalog
     private static readonly IReadOnlyDictionary<string, GuiCommandOverlay> CommandOverlays =
         new Dictionary<string, GuiCommandOverlay>(StringComparer.OrdinalIgnoreCase)
         {
-            ["guilds"] = new GuiCommandOverlay("List servers", "Discover", "server"),
-            ["channels"] = new GuiCommandOverlay("List channels", "Discover", "hash"),
-            ["dm"] = new GuiCommandOverlay("List direct messages", "Discover", "chat"),
-            ["guide"] = new GuiCommandOverlay("How to get a token", "Help", "help"),
-            ["export"] = new GuiCommandOverlay("Export channels", "Export", "download"),
+            ["guilds"] = new GuiCommandOverlay("List servers", "server"),
+            ["channels"] = new GuiCommandOverlay("List channels", "hash"),
+            ["dm"] = new GuiCommandOverlay("List direct messages", "chat"),
+            ["export"] = new GuiCommandOverlay("Export channels", "download"),
             ["exportguild"] = new GuiCommandOverlay(
                 "Export a whole server",
-                "Export",
                 "server",
                 "Exports every channel in the specified server."
             ),
             ["exportdm"] = new GuiCommandOverlay(
                 "Export all direct messages",
-                "Export",
                 "chat",
                 "Exports every direct message channel."
             ),
             ["exportall"] = new GuiCommandOverlay(
                 "Export everything",
-                "Export",
                 "globe",
                 "Exports all channels that are accessible with the provided token."
             ),
+            ["guide"] = new GuiCommandOverlay("How to get a token", "help"),
         };
 
     // Option labels shared by most commands. Command-specific overrides take precedence.
@@ -218,7 +216,6 @@ internal static class GuiCommandCatalog
                     name,
                     overlay?.Title ?? descriptor.Description ?? name,
                     overlay?.Description ?? descriptor.Description,
-                    overlay?.Group ?? "Other",
                     overlay?.Icon ?? "terminal",
                     descriptor
                         .Inputs.OfType<CommandOptionDescriptor>()
@@ -609,7 +606,6 @@ internal static class GuiCommandCatalog
 
 internal sealed record GuiCommandOverlay(
     string Title,
-    string Group,
     string Icon,
     string? Description = null
 );

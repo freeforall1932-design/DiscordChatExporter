@@ -153,45 +153,33 @@ function renderCommandList() {
   const container = element("command-list");
   container.textContent = "";
 
-  const groups = new Map();
+  // The commands are shown as a single list, in the order defined by the CLI, so that
+  // they all fit in the sidebar without scrolling or headings to skip past
   for (const command of state.commands) {
-    const group = command.group || "Commands";
-    if (!groups.has(group)) groups.set(group, []);
-    groups.get(group).push(command);
-  }
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "command";
+    button.dataset.command = command.name;
+    button.setAttribute("aria-current", String(command.name === state.selected?.name));
+    button.title = `${command.description || command.title}\n\nCommand: ${command.name}`;
 
-  for (const [group, commands] of groups) {
-    const title = document.createElement("div");
-    title.className = "group-title";
-    title.textContent = group;
-    container.append(title);
+    const icon = iconSvg(command.icon);
+    const text = document.createElement("span");
+    text.className = "command-text";
 
-    for (const command of commands) {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "command";
-      button.dataset.command = command.name;
-      button.setAttribute("aria-current", String(command.name === state.selected?.name));
-      button.title = `${command.description || command.title}\n\nCommand: ${command.name}`;
+    const name = document.createElement("span");
+    name.className = "command-name";
+    name.textContent = command.title;
 
-      const icon = iconSvg(command.icon);
-      const text = document.createElement("span");
-      text.className = "command-text";
+    const rawName = document.createElement("span");
+    rawName.className = "command-raw-name";
+    rawName.textContent = command.name;
 
-      const name = document.createElement("span");
-      name.className = "command-name";
-      name.textContent = command.title;
+    text.append(name, rawName);
+    button.append(icon, text);
 
-      const rawName = document.createElement("span");
-      rawName.className = "command-raw-name";
-      rawName.textContent = command.name;
-
-      text.append(name, rawName);
-      button.append(icon, text);
-
-      button.addEventListener("click", () => selectCommand(command.name));
-      container.append(button);
-    }
+    button.addEventListener("click", () => selectCommand(command.name));
+    container.append(button);
   }
 }
 
