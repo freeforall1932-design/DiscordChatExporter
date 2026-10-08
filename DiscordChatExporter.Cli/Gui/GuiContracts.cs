@@ -72,6 +72,14 @@ internal sealed record GuiRunDto(
 
 internal sealed record GuiCurrentRunDto(GuiRunDto? Run);
 
+internal sealed record GuiRunSummaryDto(
+    string Id,
+    string Command,
+    string State,
+    int? ExitCode,
+    string StartedAt
+);
+
 internal sealed record GuiEnvironmentDto(
     string Name,
     string Version,
