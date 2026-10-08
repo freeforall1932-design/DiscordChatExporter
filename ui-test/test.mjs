@@ -221,19 +221,54 @@ const idle = () =>
 
 const rawInput = $("raw-input");
 if (rawInput) {
-  await idle();
-  type(rawInput, "guide");
-  click($("raw-run"));
-  await waitFor(() => $("log").textContent.startsWith("$ DiscordChatExporter.Cli guide"), "the raw run to start", 15000);
-  await waitFor(() => /^Finished/.test($("status").textContent), "the raw run to finish", 30000);
-  check("raw commands are streamed too", $("log").textContent.includes("developer tools"));
+  // The run history is capped, so a new run is detected by its identifier rather than by
+  // the number of runs
+  const newestRun = async () => {
+    const runs = (await api("/api/runs")).json;
+    return runs[runs.length - 1] ?? null;
+  };
 
-  await idle();
-  type(rawInput, "nonsense-command");
-  click($("raw-run"));
-  await waitFor(() => $("log").textContent.includes("Unrecognized"), "the error to be reported", 30000);
+  // Starts a command from the raw command line box and waits for it to finish, both on the
+  // server and in the page
+  const runRaw = async (commandLine) => {
+    await idle();
+    const before = (await newestRun())?.id ?? null;
+
+    type(rawInput, commandLine);
+    click($("raw-run"));
+
+    const started = await waitForAsync(
+      async () => ((await newestRun())?.id ?? null) !== before,
+      `a run of '${commandLine}' to be created`
+    );
+    if (!started) return null;
+
+    const run = await newestRun();
+    await waitForAsync(
+      async () => (await api(`/api/runs/${run.id}`)).json.state !== "running",
+      `the run of '${commandLine}' to finish`
+    );
+    await waitFor(
+      () => $("log").textContent.includes(`$ DiscordChatExporter.Cli ${run.command}`),
+      "the page to show the run",
+      15000
+    );
+
+    return (await api(`/api/runs/${run.id}`)).json;
+  };
+
+  const guideRun = await runRaw("guide");
+  check("raw commands are streamed into the console", $("log").textContent.includes("developer tools"));
+  check("raw commands finish successfully", guideRun?.state === "succeeded", JSON.stringify(guideRun).slice(0, 200));
+
+  const badRun = await runRaw("nonsense-command");
+  await waitFor(() => $("log").textContent.includes("Unrecognized"), "the error to be reported", 15000);
+  check("unknown commands fail", badRun?.state === "failed", JSON.stringify(badRun).slice(0, 200));
   check("unknown commands are reported in the console", $("log").textContent.includes("Unrecognized"));
   await waitFor(() => $("status").textContent.startsWith("Failed"), "the run to fail", 15000);
+
+  // Held here for the diagnostics below
+  globalThis.__lastRawRun = badRun;
 } else {
   check("the raw command input exists", false);
 }
@@ -365,6 +400,16 @@ console.log(`\n${checks - failures.length}/${checks} checks passed`);
 if (failures.length > 0) {
   console.log("\nFailures:");
   for (const failure of failures) console.log(`  - ${failure}`);
+
+  console.log("\nDiagnostics:");
+  console.log("  status:", JSON.stringify($("status").textContent));
+  console.log("  validation:", JSON.stringify($("validation").textContent));
+  console.log("  toasts:", JSON.stringify([...$("toasts").children].map((t) => t.textContent)));
+  console.log("  page run:", JSON.stringify(window.__state?.run ?? null).slice(0, 300));
+  console.log("  unknown commands run:", JSON.stringify(globalThis.__lastRawRun ?? null).slice(0, 300));
+  console.log("  log:", JSON.stringify($("log").textContent.slice(0, 300)));
+  const runs = await api("/api/runs");
+  console.log("  server runs:", JSON.stringify(runs.json.map((r) => `${r.command}:${r.state}`)));
   process.exit(1);
 }
 console.log("UI TEST PASSED");
