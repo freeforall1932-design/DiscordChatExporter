@@ -85,7 +85,8 @@ public partial class GuiCommand : ICommand
                 ExecutableName = executableName,
                 VersionText = version,
             },
-            runManager
+            runManager,
+            debugLog
         );
 
         try
