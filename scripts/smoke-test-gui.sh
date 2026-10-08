@@ -40,7 +40,7 @@ fi
 info "server output: $(tr '\n' ' ' < gui.log | head -c 300)"
 
 echo "--- /api/info ---"
-python3 -m json.tool info.json | head -80
+python3 -m json.tool info.json | sed -n '1,60p'
 
 info "checking the command catalog"
 python3 - <<'PY'
@@ -165,7 +165,7 @@ STATUS="$(curl -s -o /dev/null -w '%{http_code}' -X POST "${BASE}/api/runs" \
 [ "${STATUS}" = "400" ] || fail "expected status 400 for an unknown command, got ${STATUS}"
 
 info "checking the run list"
-curl -sf "${BASE}/api/runs" | python3 -m json.tool | head -30
+curl -sf "${BASE}/api/runs" | python3 -m json.tool | sed -n '1,40p'
 
 info "running a custom command line"
 curl -sf -X POST "${BASE}/api/runs" \
