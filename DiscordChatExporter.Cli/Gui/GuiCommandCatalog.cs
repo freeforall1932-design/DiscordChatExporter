@@ -143,11 +143,7 @@ internal static class GuiCommandCatalog
             "Same as above, but as machine-readable JSON.",
             "globe",
             "exportall",
-            new Dictionary<string, string[]>
-            {
-                ["output"] = ["./exports/"],
-                ["format"] = ["Json"],
-            }
+            new Dictionary<string, string[]> { ["output"] = ["./exports/"], ["format"] = ["Json"] }
         ),
         new GuiPresetDto(
             "export-server",
@@ -171,11 +167,7 @@ internal static class GuiCommandCatalog
             "Fill in the server ID, then complete the filter: from:username (also accepts a user ID).",
             "filter",
             "exportguild",
-            new Dictionary<string, string[]>
-            {
-                ["output"] = ["./exports/"],
-                ["filter"] = ["from:"],
-            }
+            new Dictionary<string, string[]> { ["output"] = ["./exports/"], ["filter"] = ["from:"] }
         ),
         new GuiPresetDto(
             "export-with-media",
