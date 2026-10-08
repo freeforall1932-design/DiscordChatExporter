@@ -13,11 +13,8 @@ internal sealed class GuiRunBusyException(GuiRun activeRun)
     public GuiRun ActiveRun { get; } = activeRun;
 }
 
-internal sealed class GuiRunManager(
-    string executableName,
-    string versionText,
-    GuiDebugLog debugLog
-) : IDisposable
+internal sealed class GuiRunManager(string executableName, string versionText, GuiDebugLog debugLog)
+    : IDisposable
 {
     private const int MaxHistoryCount = 20;
 
@@ -104,7 +101,6 @@ internal sealed class GuiRunManager(
         try
         {
             using var console = new GuiConsole(run);
-
 
             var application = new CommandLineApplicationBuilder()
                 .AddCommandsFromThisAssembly()
