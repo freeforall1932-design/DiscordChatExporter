@@ -212,7 +212,8 @@ internal sealed class GuiServer : IDisposable
                     _startedAt,
                     _options.IsNetworkExposed,
                     !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DISCORD_TOKEN")),
-                    GuiCommandCatalog.GetCommands()
+                    GuiCommandCatalog.GetCommands(),
+                    GuiCommandCatalog.GetPresets()
                 )
             );
 

@@ -46,7 +46,27 @@ If the `DISCORD_TOKEN` environment variable is set on the machine running the se
 the field empty and that token will be used instead. The `guide` command explains how to obtain a
 token.
 
-### 2. Pick a command
+### 2. Use a quick start (optional)
+
+Above the options there is a row of ready-made combinations for the most common tasks. Clicking one
+selects the command and fills in its options — nothing runs until you press *Run*, so you can review
+or adjust everything first:
+
+| Quick start               | What it does                                                        |
+| ------------------------- | ------------------------------------------------------------------- |
+| Export everything (HTML)  | `exportall` with an output directory, as browsable HTML             |
+| Export everything (JSON)  | The same, as machine-readable JSON                                  |
+| Export a server           | `exportguild` — fill in the server ID and run                       |
+| Back up all direct messages | `exportdm`                                                        |
+| Only one person's messages | `exportguild` with `--filter from:` — complete it with their username or user ID, and only their messages are exported (replies still include who they answered) |
+| Export everything with media | `exportall` with `--media` and `--reuse-media`                   |
+| List my servers           | `guilds`                                                            |
+| How to get a token        | `guide`                                                             |
+
+The chip stays highlighted while the fields still match it, and loses the highlight as soon as you
+change something.
+
+### 3. Pick a command
 
 Every command from the CLI is listed in the sidebar as a single list, arranged so that it fits on
 screen without scrolling — the token guide sits at the bottom, right after the export commands:
@@ -65,7 +85,7 @@ screen without scrolling — the token guide sits at the bottom, right after the
 The list is generated from the CLI itself, so a command that is added in a future version appears
 in the interface automatically.
 
-### 3. Fill in the options
+### 4. Fill in the options
 
 Each option of the selected command gets its own field, with the same name, description and default
 value as on the command line. Rarely used options are hidden behind *Advanced options*.
@@ -78,7 +98,7 @@ DiscordChatExporter.Cli export --channel 803194314627285022 --format Json --outp
 
 Copying it is a convenient way to move a task from the interface into a script.
 
-### 4. Run it
+### 5. Run it
 
 The main area is split into three tabs, so that nothing has to be found by scrolling:
 
@@ -96,7 +116,7 @@ output as a file.
 Only one command can run at a time, so that the interface can't accidentally flood the Discord API.
 Use the `--parallel` option to export several channels at the same time.
 
-### 5. Anything else
+### 6. Anything else
 
 The *Run a custom command line* box at the bottom accepts any command line, including commands and
 options that don't have a field, such as:

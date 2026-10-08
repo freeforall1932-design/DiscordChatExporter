@@ -101,6 +101,35 @@ assert order == [
 ], order
 assert not any("group" in c for c in info["commands"]), "the command grouping was removed"
 
+# Every preset must point at a real command and use options that the command actually has
+presets = info["presets"]
+assert len(presets) >= 6, presets
+print("presets:", [p["id"] for p in presets])
+
+for preset in presets:
+    assert preset["title"], preset
+    assert preset["icon"], preset
+    assert preset["command"] in commands, preset
+    # Presets with no options are fine: they just select the command
+    assert isinstance(preset["options"], dict), preset
+
+    command = commands[preset["command"]]
+    option_by_name = {o["name"]: o for o in command["options"]}
+
+    for name, values in preset["options"].items():
+        assert name in option_by_name, (preset["id"], name)
+        assert values, (preset["id"], name)
+
+        option = option_by_name[name]
+        if option["kind"] == "bool":
+            assert all(v in ("true", "false") for v in values), (preset["id"], name, values)
+        if option["kind"] == "select":
+            allowed = [c["value"] for c in option["choices"]]
+            assert all(v in allowed for v in values), (preset["id"], name, values, allowed)
+
+assert any(p["id"] == "export-everything-html" for p in presets), presets
+assert any(p["id"] == "export-one-person" for p in presets), presets
+
 print("OK")
 PY
 

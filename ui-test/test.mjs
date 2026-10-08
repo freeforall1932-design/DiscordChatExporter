@@ -131,6 +131,71 @@ check(
   $$(".tab-panel.active").map((p) => p.id).join(",")
 );
 
+section("1b. quick-start presets");
+const presets = $$("#presets .preset");
+console.log("  presets:", presets.map((p) => p.dataset.preset).join(", "));
+check("the quick-start presets are offered", presets.length >= 6, `${presets.length} presets`);
+check(
+  "the preset row is visible",
+  !$("presets-bar").classList.contains("hidden"),
+  "the preset row is hidden"
+);
+check(
+  "presets carry a description",
+  presets.every((p) => p.title.length > 0),
+  "a preset has no tooltip"
+);
+
+const jsonPreset = presets.find((p) => p.dataset.preset === "export-everything-json");
+check("the JSON preset exists", !!jsonPreset);
+click(jsonPreset);
+check(
+  "the preset selects its command",
+  $("command-name").textContent === "exportall",
+  $("command-name").textContent
+);
+check(
+  "the preset fills in the format",
+  $("option-format")?.value === "Json",
+  $("option-format")?.value
+);
+check(
+  "the preset fills in the output path",
+  $("option-output")?.value === "./exports/",
+  $("option-output")?.value
+);
+check(
+  "the command line reflects the preset",
+  $("cmdline-preview").textContent.includes("--format Json") &&
+    $("cmdline-preview").textContent.includes("--output ./exports/"),
+  $("cmdline-preview").textContent
+);
+check(
+  "the applied preset is highlighted",
+  jsonPreset.dataset.active === "true",
+  jsonPreset.dataset.active
+);
+check(
+  "changing a value clears the highlight",
+  (() => {
+    type($("option-output"), "./somewhere-else/");
+    const active = jsonPreset.dataset.active;
+    type($("option-output"), "./exports/");
+    return active === "false";
+  })(),
+  "the highlight stayed on"
+);
+
+const personPreset = presets.find((p) => p.dataset.preset === "export-one-person");
+check("the one-person preset exists", !!personPreset);
+click(personPreset);
+check(
+  "the one-person preset uses a server export with a user filter",
+  $("command-name").textContent === "exportguild" &&
+    $("option-filter")?.value === "from:",
+  `${$("command-name").textContent} / ${$("option-filter")?.value}`
+);
+
 section("2. token field");
 type($("token"), "test-token-value");
 check("the token is stored locally", window.localStorage.getItem("discordchatexporter.token") === "test-token-value");

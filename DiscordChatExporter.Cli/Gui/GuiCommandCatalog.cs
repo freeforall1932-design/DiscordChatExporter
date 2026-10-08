@@ -122,6 +122,92 @@ internal static class GuiCommandCatalog
             ),
         };
 
+    /// <summary>
+    /// Ready-made combinations for the tasks that are asked for most often. They only fill
+    /// in the fields of a command, exactly like a user would, so nothing here can do
+    /// anything that the command itself can't do.
+    /// </summary>
+    private static readonly IReadOnlyList<GuiPresetDto> Presets =
+    [
+        new GuiPresetDto(
+            "export-everything-html",
+            "Export everything (HTML)",
+            "Exports every channel the token can access, as browsable HTML files.",
+            "globe",
+            "exportall",
+            new Dictionary<string, string[]> { ["output"] = ["./exports/"] }
+        ),
+        new GuiPresetDto(
+            "export-everything-json",
+            "Export everything (JSON)",
+            "Same as above, but as machine-readable JSON.",
+            "globe",
+            "exportall",
+            new Dictionary<string, string[]>
+            {
+                ["output"] = ["./exports/"],
+                ["format"] = ["Json"],
+            }
+        ),
+        new GuiPresetDto(
+            "export-server",
+            "Export a server",
+            "Fill in the server ID, then run. Exports every channel in that server.",
+            "server",
+            "exportguild",
+            new Dictionary<string, string[]> { ["output"] = ["./exports/"] }
+        ),
+        new GuiPresetDto(
+            "export-dms",
+            "Back up all direct messages",
+            "Exports every direct message channel.",
+            "chat",
+            "exportdm",
+            new Dictionary<string, string[]> { ["output"] = ["./exports/"] }
+        ),
+        new GuiPresetDto(
+            "export-one-person",
+            "Only one person's messages",
+            "Fill in the server ID, then complete the filter: from:username (also accepts a user ID).",
+            "filter",
+            "exportguild",
+            new Dictionary<string, string[]>
+            {
+                ["output"] = ["./exports/"],
+                ["filter"] = ["from:"],
+            }
+        ),
+        new GuiPresetDto(
+            "export-with-media",
+            "Export everything with media",
+            "Also downloads avatars, attachments and other files, reusing them if they are already on disk.",
+            "download",
+            "exportall",
+            new Dictionary<string, string[]>
+            {
+                ["output"] = ["./exports/"],
+                ["media"] = ["true"],
+                ["reuse-media"] = ["true"],
+            }
+        ),
+        new GuiPresetDto(
+            "list-servers",
+            "List my servers",
+            "Shows every server the token can access, with their IDs.",
+            "server",
+            "guilds",
+            new Dictionary<string, string[]>()
+        ),
+        new GuiPresetDto(
+            "guide",
+            "How to get a token",
+            "Explains how to find your token, a server ID or a channel ID.",
+            "help",
+            "guide",
+            new Dictionary<string, string[]>()
+        ),
+    ];
+
     private static readonly Lazy<IReadOnlyList<GuiCommandDto>> Commands = new(BuildCommands);
 
     private static readonly Lazy<IReadOnlyDictionary<string, GuiCommandDto>> CommandsByName = new(
@@ -130,6 +216,8 @@ internal static class GuiCommandCatalog
     );
 
     public static IReadOnlyList<GuiCommandDto> GetCommands() => Commands.Value;
+
+    public static IReadOnlyList<GuiPresetDto> GetPresets() => Presets;
 
     public static GuiCommandDto? TryGetCommand(string? name) =>
         !string.IsNullOrWhiteSpace(name) && CommandsByName.Value.TryGetValue(name, out var command)

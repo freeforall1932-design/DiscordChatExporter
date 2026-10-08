@@ -10,6 +10,7 @@ const POLL_WAIT_MS = 3000;
 const state = {
   /** @type {any} */ info: null,
   /** @type {any[]} */ commands: [],
+  /** @type {any[]} */ presets: [],
   /** @type {any} */ selected: null,
   /** @type {Record<string, any>} */ values: {},
   /** @type {Record<string, any>} */ defaults: {},
@@ -55,6 +56,7 @@ async function start() {
   }
 
   state.commands = state.info.commands || [];
+  state.presets = state.info.presets || [];
 
   element("brand-name").textContent = state.info.name;
   element("brand-meta").textContent = `v${state.info.version} · ${state.info.executableName}`;
@@ -62,6 +64,7 @@ async function start() {
   element("network-warning").classList.toggle("hidden", !state.info.isNetworkExposed);
 
   renderCommandList();
+  renderPresets();
   selectCommand(state.commands[0]?.name);
 
   // Restore the tab that was open the last time, unless a command is already running
@@ -181,6 +184,95 @@ function renderCommandList() {
     button.addEventListener("click", () => selectCommand(command.name));
     container.append(button);
   }
+}
+
+function renderPresets() {
+  const bar = element("presets-bar");
+  const container = element("presets");
+  container.textContent = "";
+
+  // Newer servers may not send any presets, in which case the row stays hidden
+  bar.classList.toggle("hidden", state.presets.length === 0);
+
+  for (const preset of state.presets) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "preset";
+    button.dataset.preset = preset.id;
+    button.title = `${preset.description || preset.title}\n\nCommand: ${preset.command}`;
+
+    button.append(iconSvg(preset.icon), document.createTextNode(preset.title));
+    button.addEventListener("click", () => applyPreset(preset));
+    container.append(button);
+  }
+
+  markActivePreset();
+}
+
+/** Highlights the preset whose values are the ones currently in the form. */
+function markActivePreset() {
+  for (const button of document.querySelectorAll("#presets .preset")) {
+    button.dataset.active = "false";
+  }
+
+  if (!state.selected) return;
+
+  for (const preset of state.presets) {
+    if (preset.command !== state.selected.name) continue;
+
+    const matches = Object.entries(preset.options || {}).every(([name, values]) => {
+      const option = state.selected.options.find((o) => o.name === name);
+      if (!option) return false;
+
+      const current = state.values[name];
+      if (option.kind === "bool") return current === (values[0] === "true");
+      if (option.isSequence) return [].concat(current || []).join("\u0000") === values.join("\u0000");
+      return String(current ?? "").trim() === String(values[0] ?? "").trim();
+    });
+
+    const button = document.querySelector(`#presets .preset[data-preset="${preset.id}"]`);
+    if (button && matches) button.dataset.active = "true";
+  }
+}
+
+/** Fills the form with a preset, so that the user only has to review it and press Run. */
+function applyPreset(preset) {
+  const command = state.commands.find((c) => c.name === preset.command);
+  if (!command) {
+    showToast(`The preset '${preset.title}' refers to an unknown command.`, "error");
+    return;
+  }
+
+  selectCommand(preset.command);
+
+  const names = Object.keys(preset.options || {});
+
+  // Options such as the message filter live under "Advanced options", so reveal them
+  // when a preset fills one in, otherwise the field would be invisible
+  const needsAdvanced = state.selected.options.some(
+    (o) => o.isAdvanced && names.includes(o.name)
+  );
+  if (needsAdvanced) {
+    element("advanced-toggle").checked = true;
+    state.showAdvanced = true;
+  }
+
+  for (const [name, values] of Object.entries(preset.options || {})) {
+    const option = state.selected.options.find((o) => o.name === name);
+    if (!option) continue;
+
+    if (option.kind === "bool") state.values[name] = values[0] === "true";
+    else if (option.isSequence) state.values[name] = [...values];
+    else state.values[name] = values[0] ?? "";
+  }
+
+  renderForm();
+  refreshCommandLinePreview();
+  refreshRunAvailability();
+  markActivePreset();
+  switchTab("options", { focus: false });
+
+  showToast(`Preset applied: ${preset.title}. Review the fields and press Run.`, "success");
 }
 
 function selectCommand(name) {
@@ -494,6 +586,7 @@ function createChipsControl(option, id) {
 function onFormChanged() {
   refreshCommandLinePreview();
   refreshRunAvailability();
+  markActivePreset();
 }
 
 function refreshRunAvailability() {

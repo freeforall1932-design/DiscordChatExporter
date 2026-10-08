@@ -14,5 +14,6 @@ namespace DiscordChatExporter.Cli.Gui;
 [JsonSerializable(typeof(GuiErrorDto))]
 [JsonSerializable(typeof(GuiDebugDto))]
 [JsonSerializable(typeof(GuiRunSummaryDto))]
+[JsonSerializable(typeof(GuiPresetDto))]
 [JsonSerializable(typeof(GuiRunDto[]))]
 internal partial class GuiJsonContext : JsonSerializerContext;

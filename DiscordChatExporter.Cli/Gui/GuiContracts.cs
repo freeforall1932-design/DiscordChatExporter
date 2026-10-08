@@ -25,7 +25,8 @@ internal sealed record GuiInfoDto(
     string StartedAt,
     bool IsNetworkExposed,
     bool HasEnvironmentToken,
-    IReadOnlyList<GuiCommandDto> Commands
+    IReadOnlyList<GuiCommandDto> Commands,
+    IReadOnlyList<GuiPresetDto> Presets
 );
 
 internal sealed record GuiCommandDto(
@@ -36,6 +37,18 @@ internal sealed record GuiCommandDto(
     bool RequiresToken,
     int Order,
     IReadOnlyList<GuiOptionDto> Options
+);
+
+/// <summary>
+/// A ready-made combination of a command and its options, shown as a quick-start button.
+/// </summary>
+internal sealed record GuiPresetDto(
+    string Id,
+    string Title,
+    string? Description,
+    string Icon,
+    string Command,
+    IReadOnlyDictionary<string, string[]> Options
 );
 
 internal sealed record GuiOptionDto(
