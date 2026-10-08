@@ -19,7 +19,7 @@ jobs:
     timeout-minutes: 20
 
     permissions:
-      contents: read
+      contents: write
 
     steps:
       - name: Checkout
@@ -48,137 +48,22 @@ jobs:
 
       - name: Smoke test the web interface
         run: |
-          set -euo pipefail
+          set -o pipefail
+          ./scripts/smoke-test-gui.sh ./publish/DiscordChatExporter.Cli 5155 2>&1 | tee smoke.log
 
-          ./publish/DiscordChatExporter.Cli gui --port 5155 --host any --no-browser > gui.log 2>&1 &
-          GUI_PID=$!
-          trap 'kill $GUI_PID 2>/dev/null || true' EXIT
-
-          for i in $(seq 1 40); do
-            if curl -sf http://127.0.0.1:5155/api/info > info.json; then break; fi
-            sleep 0.5
+      - name: Publish diagnostics
+        if: failure()
+        run: |
+          mkdir -p ci-diagnostics
+          for file in gui.log smoke.log info.json run.json raw-run.json error.json index.html; do
+            [ -f "$file" ] && cp "$file" ci-diagnostics/ || true
           done
 
-          echo "--- server banner ---"
-          cat gui.log
-
-          echo "--- /api/info ---"
-          python3 -m json.tool info.json | head -60
-
-          echo "--- checking that all commands are exposed ---"
-          python3 - <<'PY'
-          import json
-          info = json.load(open("info.json"))
-          commands = {c["name"]: c for c in info["commands"]}
-          print("commands:", sorted(commands))
-
-          expected = ["channels", "dm", "export", "exportall", "exportdm", "exportguild", "guilds", "guide"]
-          missing = [c for c in expected if c not in commands]
-          assert not missing, f"missing commands: {missing}"
-
-          # 'gui' must not be exposed as a button
-          assert "gui" not in commands, "the gui command should not be exposed"
-
-          # every command must be runnable, so it must have a name and a title
-          for name, command in commands.items():
-              assert command["title"], name
-              for option in command["options"]:
-                  assert option["kind"], (name, option["name"])
-                  assert option["label"], (name, option["name"])
-
-          export = commands["export"]
-          kinds = {o["name"]: o["kind"] for o in export["options"]}
-          print("export option kinds:", kinds)
-          assert kinds["channel"] == "list"
-          assert kinds["format"] == "select"
-          assert kinds["output"] == "path"
-          assert kinds["media"] == "bool"
-          assert kinds["after"] == "date"
-          assert export["requiresToken"] is True
-
-          channels = commands["channels"]
-          guild = [o for o in channels["options"] if o["name"] == "guild"][0]
-          assert guild["isRequired"] is True, "the guild option should be required"
-          print("OK")
-          PY
-
-          echo "--- running the guide command through the API ---"
-          curl -sf -X POST http://127.0.0.1:5155/api/runs \
-            -H 'Content-Type: application/json' \
-            -d '{"command":"guide"}' > run.json
-          python3 -m json.tool run.json
-          RUN_ID=$(python3 -c "import json;print(json.load(open('run.json'))['id'])")
-
-          # Poll for the output until the run finishes
-          python3 - "$RUN_ID" <<'PY'
-          import json, sys, time, urllib.request
-
-          run_id = sys.argv[1]
-          cursor = 0
-          output = ""
-          state = "running"
-          deadline = time.time() + 60
-
-          while time.time() < deadline:
-              url = f"http://127.0.0.1:5155/api/runs/{run_id}?cursor={cursor}&wait=2000"
-              with urllib.request.urlopen(url) as response:
-                  payload = json.load(response)
-              output += payload["output"]
-              cursor = payload["cursor"]
-              state = payload["state"]
-              if state != "running":
-                  break
-
-          print("state:", state, "exit code:", payload.get("exitCode"))
-          print("output:", repr(output[:400]))
-          assert state == "succeeded", state
-          assert "developer tools" in output, output
-          assert "authorization" in output, output
-          assert "DiscordChatExporter.Cli" in payload["commandLine"], payload["commandLine"]
-          print("OK")
-          PY
-
-          echo "--- rejecting an invalid run request ---"
-          STATUS=$(curl -s -o error.json -w '%{http_code}' -X POST http://127.0.0.1:5155/api/runs \
-            -H 'Content-Type: application/json' \
-            -d '{"command":"channels","options":{}}')
-          echo "status: $STATUS"
-          cat error.json
-          echo
-          [ "$STATUS" = "400" ] || { echo "expected 400"; exit 1; }
-
-          echo "--- rejecting cross-origin requests ---"
-          STATUS=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:5155/api/runs \
-            -H 'Content-Type: application/json' \
-            -H 'Origin: https://evil.example.com' \
-            -d '{"command":"guide"}')
-          echo "status: $STATUS"
-          [ "$STATUS" = "403" ] || { echo "expected 403"; exit 1; }
-
-          echo "--- listing runs ---"
-          curl -sf http://127.0.0.1:5155/api/runs | python3 -m json.tool | head -20
-
-          echo "--- serving the interface ---"
-          curl -sf http://127.0.0.1:5155/ -o index.html
-          curl -sf http://127.0.0.1:5155/app.js -o served-app.js
-          curl -sf http://127.0.0.1:5155/app.css -o served-app.css
-          head -3 index.html
-          diff -q DiscordChatExporter.Cli/Gui/Assets/app.js served-app.js
-          diff -q DiscordChatExporter.Cli/Gui/Assets/app.css served-app.css
-
-          echo "SMOKE TEST PASSED"
-
-      - name: Upload build log on failure
-        if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: gui-logs
-          path: |
-            gui.log
-            info.json
-            run.json
-            error.json
-          if-no-files-found: ignore
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f ci-diagnostics
+          git commit -m "CI diagnostics for failed run"
+          git push origin "HEAD:${{ github.ref_name }}"
 
       - name: Upload binaries
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
