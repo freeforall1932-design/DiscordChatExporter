@@ -604,11 +604,7 @@ internal static class GuiCommandCatalog
     }
 }
 
-internal sealed record GuiCommandOverlay(
-    string Title,
-    string Icon,
-    string? Description = null
-);
+internal sealed record GuiCommandOverlay(string Title, string Icon, string? Description = null);
 
 internal sealed record GuiOptionOverlay(
     string? Label = null,
