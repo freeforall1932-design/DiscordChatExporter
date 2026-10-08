@@ -746,7 +746,7 @@ function updateRunState(run, options = {}) {
     badge.textContent = `exit code ${exitCode}`;
 
     if (run.state === "succeeded") {
-      setStatus("succeeded", `Finished ${run.command}`);
+      setStatus("succeeded", `Done ${run.command}`);
       showToast(`'${run.command}' finished successfully.`, "success");
     } else if (run.state === "cancelled") {
       setStatus("cancelled", `Cancelled ${run.command}`);
@@ -1045,6 +1045,8 @@ function setStatus(kind, text) {
   const pill = element("status");
   pill.className = `pill ${kind}`;
   pill.textContent = text;
+  // The pill is truncated on narrow windows, so the full text stays available as a tooltip
+  pill.title = text;
 }
 
 function showToast(message, kind = "info") {

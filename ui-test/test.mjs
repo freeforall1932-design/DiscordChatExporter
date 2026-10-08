@@ -208,13 +208,24 @@ check("guide can be run", $("run").disabled === false);
 type($("token"), "test-token-value");
 
 click($("run"));
-await waitFor(() => /^Finished/.test($("status").textContent), "the run to finish", 30000);
+await waitFor(() => /^Done\b/.test($("status").textContent), "the run to finish", 30000);
 
 const log = $("log").textContent;
 console.log("  log:", JSON.stringify(log.slice(0, 100)));
 check("the output is streamed into the console", log.includes("developer tools"));
 check("the executed command line is shown", log.includes("DiscordChatExporter.Cli guide"));
-check("the status is updated", /^Finished/.test($("status").textContent), $("status").textContent);
+check("the status is updated", /^Done\b/.test($("status").textContent), $("status").textContent);
+check(
+  "the finished status is short enough to fit next to the icons",
+  $("status").textContent.replace(/^Done /, "").length <= 16 &&
+    $("status").textContent.length <= 20,
+  $("status").textContent
+);
+check(
+  "the full status is available as a tooltip",
+  $("status").title === $("status").textContent,
+  $("status").title
+);
 check("the exit code is shown", $("run-badge").textContent.includes("0"), $("run-badge").textContent);
 check("run is available again", $("run").disabled === false);
 check("the log can be downloaded", $("log-download").disabled === false);
@@ -408,6 +419,11 @@ check(
   ruleFor(".tab-panel")
 );
 check(
+  "the status pill truncates instead of overlapping the icons",
+  /text-overflow: ellipsis/.test(ruleFor(".pill")) && /min-width: 0/.test(ruleFor(".pill")),
+  ruleFor(".pill")
+);
+check(
   "there are responsive rules for small windows",
   cssRules.includes("@media (max-width: 900px)") &&
     cssRules.includes("@media (max-height: 780px)"),
@@ -488,7 +504,7 @@ await waitFor(
   10000
 );
 check("running a command opens the output tab", $("panel-output").classList.contains("active"));
-await waitFor(() => /^Finished/.test($("status").textContent), "the run to finish", 30000);
+await waitFor(() => /^Done\b/.test($("status").textContent), "the run to finish", 30000);
 check(
   "the output tab shows the run state",
   /succeeded|failed|cancelled/.test($("output-dot").className),

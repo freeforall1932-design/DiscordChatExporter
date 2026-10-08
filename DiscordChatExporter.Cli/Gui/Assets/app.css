@@ -161,11 +161,13 @@ pre {
   align-items: center;
   gap: 8px;
   flex: 1 1 260px;
-  min-width: 180px;
+  min-width: 0;
+  overflow: hidden;
 }
 
-.token .btn.ghost {
-  padding: 6px;
+.token .btn.ghost,
+.token .check {
+  flex: 0 0 auto;
 }
 
 .token-field {
@@ -205,6 +207,8 @@ pre {
   align-items: center;
   gap: 10px;
   margin-left: auto;
+  min-width: 0;
+  flex: 0 1 auto;
 }
 
 .pill {
@@ -214,6 +218,12 @@ pre {
   font-weight: 600;
   white-space: nowrap;
   border: 1px solid transparent;
+  /* Never push into the icons beside it: shrink and truncate instead, the full
+     text stays available as a tooltip */
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .pill.idle {
