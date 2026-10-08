@@ -13,7 +13,11 @@ internal sealed class GuiRunBusyException(GuiRun activeRun)
     public GuiRun ActiveRun { get; } = activeRun;
 }
 
-internal sealed class GuiRunManager(string executableName, string versionText) : IDisposable
+internal sealed class GuiRunManager(
+    string executableName,
+    string versionText,
+    GuiDebugLog debugLog
+) : IDisposable
 {
     private const int MaxHistoryCount = 20;
 
@@ -70,6 +74,12 @@ internal sealed class GuiRunManager(string executableName, string versionText) :
             run = new GuiRun(commandName, commandLine);
             _runs.Add(run);
 
+            debugLog.Info(
+                "run",
+                $"Started '{run.Id}' with: {GuiCommandCatalog.FormatCommandLine(executableName, arguments, token)}"
+                    + (string.IsNullOrWhiteSpace(token) ? "" : " (token supplied)")
+            );
+
             // Trim the history to keep the memory usage in check
             while (_runs.Count(r => r.IsFinished) > MaxHistoryCount)
             {
@@ -95,6 +105,7 @@ internal sealed class GuiRunManager(string executableName, string versionText) :
         {
             using var console = new GuiConsole(run);
 
+
             var application = new CommandLineApplicationBuilder()
                 .AddCommandsFromThisAssembly()
                 .SetTitle("DiscordChatExporter")
@@ -104,15 +115,25 @@ internal sealed class GuiRunManager(string executableName, string versionText) :
                 .Build();
 
             exitCode = await application.RunAsync(arguments);
+
+            if (exitCode != 0)
+                debugLog.Warn("run", $"'{run.Id}' exited with code {exitCode}.");
         }
         catch (Exception ex)
         {
             run.Append(ex + Environment.NewLine);
+            debugLog.Exception("run", ex);
             exitCode = 1;
         }
         finally
         {
             run.Complete(exitCode, run.Cancellation.IsCancellationRequested);
+
+            debugLog.Info(
+                "run",
+                $"Finished '{run.Id}' ({run.Command}) as {GuiRun.GetStateName(run.State)}"
+                    + $" in {(DateTimeOffset.Now - run.StartedAt).TotalSeconds:0.0}s."
+            );
         }
     }
 

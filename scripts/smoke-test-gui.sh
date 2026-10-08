@@ -209,4 +209,62 @@ info "checking the log download endpoint"
 curl -sf "${BASE}/api/runs/${RUN_ID}/log" -o run.log
 grep -q "authorization" run.log
 
+info "checking the debug endpoint"
+
+# A run with a token, so that the diagnostics can be checked for leaks
+curl -sf -X POST "${BASE}/api/runs" \
+    -H "Content-Type: application/json" \
+    -d '{"command":"guilds","options":{},"token":"smoke-test-token"}' > token-run.json
+TOKEN_RUN_ID="$(python3 -c "import json; print(json.load(open('token-run.json'))['id'])")"
+
+python3 - "${PORT}" "${TOKEN_RUN_ID}" <<'PY'
+import json
+import sys
+import time
+import urllib.request
+
+port, run_id = sys.argv[1], sys.argv[2]
+deadline = time.time() + 60
+
+while time.time() < deadline:
+    with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/runs/{run_id}?cursor=0&wait=1000") as r:
+        payload = json.load(r)
+
+    if payload["state"] != "running":
+        break
+
+print("token run state:", payload["state"])
+PY
+
+curl -sf "${BASE}/api/debug" -o debug.json
+python3 -m json.tool debug.json | sed -n '1,24p'
+
+python3 - <<'PY'
+import json
+
+debug = json.load(open("debug.json"))
+environment = debug["environment"]
+events = debug["events"]
+text = json.dumps(debug)
+
+assert environment["executableName"], environment
+assert environment["workingDirectory"], environment
+assert environment["runtime"], environment
+assert len(events) > 0, "no diagnostic events were recorded"
+assert all(
+    e["timestamp"] and e["level"] and e["category"] and e["message"] for e in events
+), events[:3]
+assert any(e["category"] == "http" and "/api/" in e["message"] for e in events), events[:5]
+assert any(e["category"] == "run" and "guide" in e["message"] for e in events), events[:8]
+assert isinstance(debug["runs"], list) and debug["runs"], debug["runs"]
+
+# The token must never reach the diagnostics
+assert "smoke-test-token" not in text, "the token leaked into the debug information"
+assert "--token ***" in text, "the token was not masked in the command line"
+assert "token supplied" in text, "the token run was not recorded"
+
+print("events:", len(events), "| runs:", len(debug["runs"]))
+print("OK")
+PY
+
 info "SMOKE TEST PASSED"

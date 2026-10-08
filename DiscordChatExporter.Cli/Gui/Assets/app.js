@@ -3,6 +3,7 @@
 const TOKEN_KEY = "discordchatexporter.token";
 const REMEMBER_KEY = "discordchatexporter.remember";
 const THEME_KEY = "discordchatexporter.theme";
+const TAB_KEY = "discordchatexporter.tab";
 
 const POLL_WAIT_MS = 3000;
 
@@ -21,6 +22,9 @@ const state = {
   pendingNode: null,
   /** Nodes of the most recently written lines, used to redraw progress bars in place */
   logTail: [],
+  tab: "options",
+  /** @type {any} */ debug: null,
+  debugTimer: null,
   polling: false,
   token: "",
   remember: true,
@@ -60,7 +64,53 @@ async function start() {
   renderCommandList();
   selectCommand(state.commands[0]?.name);
 
+  // Restore the tab that was open the last time, unless a command is already running
+  const lastTab = localStorage.getItem(TAB_KEY);
+  switchTab(state.run?.state === "running" ? "output" : lastTab || "options", { focus: false });
+
   await attachToRunningCommand();
+}
+
+// —————————————————————————————— Tabs ——————————————————————————————
+
+const TABS = ["options", "output", "debug"];
+
+function switchTab(name, options = {}) {
+  if (!TABS.includes(name)) return;
+
+  state.tab = name;
+
+  for (const tab of TABS) {
+    const button = element(`tab-${tab}`);
+    const panel = element(`panel-${tab}`);
+    if (!button || !panel) continue;
+
+    button.setAttribute("aria-selected", String(tab === name));
+    panel.classList.toggle("active", tab === name);
+  }
+
+  if (name === "debug") {
+    void refreshDebugInfo();
+    startDebugPolling();
+  } else {
+    stopDebugPolling();
+  }
+
+  if (name === "output" && options.focus !== false) {
+    element("log")?.focus({ preventScroll: true });
+  }
+}
+
+function startDebugPolling() {
+  stopDebugPolling();
+  state.debugTimer = window.setInterval(() => void refreshDebugInfo(), 2000);
+}
+
+function stopDebugPolling() {
+  if (state.debugTimer !== null) {
+    window.clearInterval(state.debugTimer);
+    state.debugTimer = null;
+  }
 }
 
 // —————————————————————————————— HTTP ——————————————————————————————
@@ -643,6 +693,7 @@ function beginRun(run) {
   );
 
   updateRunState(run, { reset: true });
+  switchTab("output", { focus: false });
 }
 
 async function pollRun() {
@@ -729,6 +780,7 @@ function updateRunState(run, options = {}) {
     element("progress-label").textContent = "0%";
   }
 
+  element("output-dot").className = `dot ${run.state}`;
   element("log-download").disabled = false;
   refreshRunAvailability();
 
@@ -876,6 +928,129 @@ function downloadLog() {
   window.location.href = `/api/runs/${state.run.id}/log`;
 }
 
+// —————————————————————————————— Debug ——————————————————————————————
+
+async function refreshDebugInfo() {
+  if (state.tab !== "debug") return;
+
+  try {
+    state.debug = await api("/api/debug");
+    renderDebugInfo(state.debug);
+  } catch (error) {
+    const events = element("debug-events");
+    events.textContent = "";
+    appendDebugLine(events, "error", "debug", `Failed to load debug information: ${error.message}`);
+  }
+}
+
+function renderDebugInfo(info) {
+  const environment = element("debug-env");
+  environment.textContent = "";
+
+  const rows = [
+    ["Version", `${info.environment.name} ${info.environment.version}`],
+    ["Executable", info.environment.executableName],
+    ["Web interface", info.environment.serverUrl],
+    ["Working directory", info.environment.workingDirectory],
+    ["Started", formatTimestamp(info.environment.startedAt)],
+    ["Runtime", `${info.environment.runtime} (process ${info.environment.processId})`],
+    ["Requests served", String(info.requestCount ?? info.environment.requestCount ?? 0)],
+    [
+      "Network access",
+      info.environment.isNetworkExposed
+        ? "all interfaces (use '--host localhost' to restrict)"
+        : "this machine only",
+    ],
+    [
+      "Token from environment",
+      info.environment.hasEnvironmentToken ? "yes (DISCORD_TOKEN)" : "no",
+    ],
+    ["Browser", navigator.userAgent],
+    ["Viewport", `${window.innerWidth}×${window.innerHeight}`],
+  ];
+
+  for (const [label, value] of rows) {
+    const dt = document.createElement("dt");
+    dt.textContent = label;
+    const dd = document.createElement("dd");
+    dd.textContent = value ?? "";
+    environment.append(dt, dd);
+  }
+
+  const events = element("debug-events");
+  const shouldFollow = element("debug-follow").checked;
+  const wasAtBottom = events.scrollHeight - events.scrollTop - events.clientHeight < 30;
+  events.textContent = "";
+
+  const list = info.events || [];
+  for (const event of list) {
+    appendDebugLine(events, event.level, event.category, event.message, event.timestamp);
+  }
+
+  if (list.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "debug-empty";
+    empty.textContent = "No activity recorded yet.";
+    events.append(empty);
+  }
+
+  if (shouldFollow && wasAtBottom) {
+    events.scrollTop = events.scrollHeight;
+  }
+
+  element("debug-count").textContent = list.length > 0 ? String(list.length) : "";
+  element("debug-updated").textContent = `updated ${new Date().toLocaleTimeString()}`;
+}
+
+function appendDebugLine(container, level, category, message, timestamp) {
+  const line = document.createElement("div");
+  line.className = `debug-event level-${level}`;
+
+  const time = document.createElement("span");
+  time.className = "time";
+  time.textContent = timestamp || new Date().toLocaleTimeString();
+
+  const categorySpan = document.createElement("span");
+  categorySpan.className = "category";
+  categorySpan.textContent = category;
+
+  const messageSpan = document.createElement("span");
+  messageSpan.className = "message";
+  messageSpan.textContent = message;
+
+  line.append(time, categorySpan, messageSpan);
+  container.append(line);
+}
+
+function formatTimestamp(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value ?? "") : date.toLocaleString();
+}
+
+function downloadDebugInfo() {
+  if (!state.debug) {
+    showToast("Debug information is not loaded yet.", "warning");
+    return;
+  }
+
+  const payload = {
+    generatedAt: new Date().toISOString(),
+    environment: state.debug.environment,
+    browser: { userAgent: navigator.userAgent, viewport: `${innerWidth}x${innerHeight}` },
+    runs: state.debug.runs,
+    events: state.debug.events,
+  };
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "discordchatexporter-debug.json";
+  link.click();
+  URL.revokeObjectURL(url);
+  showToast("Debug information saved.", "success");
+}
+
 // —————————————————————————————— Chrome ——————————————————————————————
 
 function setStatus(kind, text) {
@@ -911,6 +1086,17 @@ function applyTheme(theme) {
 }
 
 function wireEvents() {
+  for (const tab of TABS) {
+    element(`tab-${tab}`).addEventListener("click", () => {
+      switchTab(tab);
+      // The output tab is the default after a run, so it isn't remembered explicitly
+      if (tab !== "output") localStorage.setItem(TAB_KEY, tab);
+    });
+  }
+
+  element("debug-refresh").addEventListener("click", () => void refreshDebugInfo());
+  element("debug-download").addEventListener("click", downloadDebugInfo);
+
   element("run").addEventListener("click", () => void runSelectedCommand());
   element("cancel").addEventListener("click", () => void cancelRun());
   element("raw-run").addEventListener("click", () => void runRawCommand());

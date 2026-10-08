@@ -26,6 +26,7 @@ internal sealed partial class GuiRun
     private readonly StringBuilder _output = new();
 
     private volatile bool _isFinished;
+    private bool _isTruncated;
     private int _progress = -1;
 
     public GuiRun(string command, string commandLine)
@@ -59,10 +60,13 @@ internal sealed partial class GuiRun
 
         lock (_lock)
         {
-            if (_output.Length >= MaxOutputLength)
+            // A single write can push the output past the limit, so the marker is added
+            // exactly once, whenever the limit is first exceeded
+            if (_isTruncated || _output.Length >= MaxOutputLength)
             {
-                if (_output.Length == MaxOutputLength)
+                if (!_isTruncated)
                 {
+                    _isTruncated = true;
                     _output.Append(
                         Environment.NewLine
                             + $"[output truncated after {MaxOutputLength / 1024 / 1024} MB]"

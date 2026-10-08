@@ -21,6 +21,7 @@ The interface opens automatically at <http://localhost:5000/>. Press
 | `-p, --port`   | Port to listen on (default: `5000`)                                        |
 | `--host`       | `localhost` (default) only accepts connections from this machine, `any` also accepts connections from your local network |
 | `--no-browser` | Don't open the browser automatically                                       |
+| `--verbose`    | Print the diagnostic events of the interface to the console                |
 
 For example, to use the interface from another device on your network:
 
@@ -78,9 +79,18 @@ Copying it is a convenient way to move a task from the interface into a script.
 
 ### 4. Run it
 
-Press *Run* (or <kbd>Ctrl</kbd>+<kbd>Enter</kbd>). The command executes inside the server process
-and its output — including progress bars — is streamed into the panel below. *Cancel*
-(or <kbd>Esc</kbd>) stops a running command, and the download button saves the output as a file.
+The main area is split into three tabs, so that nothing has to be found by scrolling:
+
+| Tab         | What it holds                                                              |
+| ----------- | -------------------------------------------------------------------------- |
+| **Options** | The fields of the selected command, plus the custom command line box        |
+| **Output**  | The console: live output, progress and the result of the last command       |
+| **Debug**   | Diagnostics: environment, server activity and the [debug info](#debugging)  |
+
+Press *Run* (or <kbd>Ctrl</kbd>+<kbd>Enter</kbd>); the *Output* tab opens automatically. The command
+executes inside the server process and its output — including progress bars — is streamed into the
+console. *Cancel* (or <kbd>Esc</kbd>) stops a running command, and the download button saves the
+output as a file.
 
 Only one command can run at a time, so that the interface can't accidentally flood the Discord API.
 Use the `--parallel` option to export several channels at the same time.
@@ -95,6 +105,26 @@ export --help
 channels -g 123 --include-threads all
 exportall -o ./exports/ --parallel 3
 ```
+
+## Debugging
+
+If something doesn't work as expected, open the **Debug** tab. It shows:
+
+- the version, executable, working directory, runtime and the address of the interface,
+- whether the server is reachable from your network and whether a token is configured through the
+  `DISCORD_TOKEN` environment variable,
+- a live log of everything the interface does: HTTP requests, started and finished commands, and
+  full exception details for failures.
+
+*Save debug info* writes all of it (plus your browser and viewport) to a JSON file, which is what to
+attach to a bug report. Secrets are removed from the log before it is recorded, so the file never
+contains your Discord token.
+
+The same information is available on the command line:
+
+- <http://localhost:5000/api/debug> returns it as JSON,
+- starting the server with `--verbose` prints every diagnostic event to the terminal as well,
+  which is useful when the interface itself doesn't load.
 
 ## Keyboard shortcuts
 

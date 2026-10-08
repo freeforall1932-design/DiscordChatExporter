@@ -72,4 +72,24 @@ internal sealed record GuiRunDto(
 
 internal sealed record GuiCurrentRunDto(GuiRunDto? Run);
 
+internal sealed record GuiEnvironmentDto(
+    string Name,
+    string Version,
+    string ExecutableName,
+    string WorkingDirectory,
+    string ServerUrl,
+    bool IsNetworkExposed,
+    bool HasEnvironmentToken,
+    string StartedAt,
+    string Runtime,
+    int ProcessId
+);
+
+internal sealed record GuiDebugDto(
+    GuiEnvironmentDto Environment,
+    IReadOnlyList<GuiDebugEventDto> Events,
+    IReadOnlyList<GuiRunSummaryDto> Runs,
+    int RequestCount
+);
+
 internal sealed record GuiErrorDto(string Message, IReadOnlyList<string>? Details = null);

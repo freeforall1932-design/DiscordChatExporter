@@ -52,6 +52,7 @@ html[data-theme="light"] {
 html,
 body {
   height: 100%;
+  overflow: hidden;
 }
 
 body {
@@ -118,8 +119,9 @@ pre {
 .topbar {
   display: flex;
   align-items: center;
-  gap: 18px;
-  padding: 12px 18px;
+  gap: 14px;
+  padding: 9px 16px;
+  flex: 0 0 auto;
   background: var(--bg-elevated);
   border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
@@ -128,32 +130,42 @@ pre {
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-width: 220px;
+  gap: 9px;
+  min-width: 0;
+  flex: 0 1 auto;
 }
 
 .brand-logo {
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   fill: var(--brand);
   stroke: none;
 }
 
 .brand-text h1 {
   line-height: 1.2;
+  white-space: nowrap;
 }
 
 .brand-text p {
-  margin: 2px 0 0;
-  font-size: 11.5px;
-  overflow-wrap: anywhere;
+  margin: 1px 0 0;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 26vw;
 }
 
 .token {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex: 1 1 380px;
+  flex: 1 1 260px;
+  min-width: 180px;
+}
+
+.token .btn.ghost {
+  padding: 6px;
 }
 
 .token-field {
@@ -177,7 +189,8 @@ pre {
 }
 
 .token-field input {
-  flex: 1 1 auto;
+  flex: 1 1 60px;
+  min-width: 0;
   border: 0;
   background: transparent;
   color: var(--text);
@@ -246,26 +259,32 @@ pre {
 main {
   flex: 1 1 auto;
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
+  grid-template-columns: minmax(200px, 268px) minmax(0, 1fr);
   min-height: 0;
+  overflow: hidden;
 }
 
 .sidebar {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  min-width: 0;
+  overflow: hidden;
   border-right: 1px solid var(--border);
   background: var(--bg-elevated);
 }
 
 #command-list {
   flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
-  padding: 14px 10px;
+  overflow-x: hidden;
+  padding: 12px 8px;
+  scrollbar-gutter: stable;
 }
 
 .group-title {
-  margin: 14px 8px 6px;
+  margin: 12px 8px 5px;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -278,11 +297,13 @@ main {
 
 .command {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: flex-start;
+  gap: 9px;
   width: 100%;
-  padding: 9px 10px;
-  margin-bottom: 3px;
+  max-width: 100%;
+  min-width: 0;
+  padding: 7px 9px;
+  margin-bottom: 2px;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -308,25 +329,40 @@ main {
 }
 
 .command .icon {
-  width: 17px;
-  height: 17px;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
 }
 
+/* The label and the command name are stacked, so that they can never collide or run
+   past the edge of the sidebar */
 .command-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
   min-width: 0;
+  gap: 1px;
 }
 
-.command-name {
-  font-weight: 600;
-  font-size: 13.5px;
+.command-name,
+.command-raw-name {
+  display: block;
+  max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+.command-name {
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.25;
+}
+
 .command-raw-name {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10.5px;
+  line-height: 1.2;
   color: var(--text-faint);
 }
 
@@ -335,15 +371,21 @@ main {
 }
 
 .sidebar-footer {
-  padding: 10px 14px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex: 0 0 auto;
+  padding: 7px 12px;
   border-top: 1px solid var(--border);
-  font-size: 11px;
+  font-size: 10.5px;
+  min-width: 0;
 }
 
 .sidebar-footer code {
-  display: block;
-  margin-top: 3px;
-  overflow-wrap: anywhere;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   color: var(--text-muted);
 }
 
@@ -351,28 +393,41 @@ main {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  padding: 18px 20px 14px;
-  gap: var(--gap);
-  overflow-y: auto;
+  min-width: 0;
+  padding: 12px 16px 10px;
+  gap: 10px;
+  overflow: hidden;
 }
 
 .command-header {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  flex-wrap: wrap;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.command-header h2 {
+  font-size: 17px;
+  line-height: 1.25;
 }
 
 .command-header p {
-  margin: 4px 0 0;
-  max-width: 70ch;
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  max-width: 90ch;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .command-badges {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   margin-left: auto;
   align-items: center;
+  flex: 0 0 auto;
 }
 
 .badge {
@@ -386,12 +441,148 @@ main {
   white-space: nowrap;
 }
 
+/* Tabs */
+
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--border);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  margin-bottom: -1px;
+  border: 1px solid transparent;
+  border-bottom: 2px solid transparent;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tab:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.tab[aria-selected="true"] {
+  color: var(--text);
+  border-bottom-color: var(--brand);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
+}
+
+.tab .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  flex: 0 0 auto;
+}
+
+.tab .dot.running {
+  background: var(--brand);
+  animation: dot-pulse 1.1s ease-in-out infinite;
+}
+
+.tab .dot.succeeded {
+  background: var(--success);
+}
+
+.tab .dot.failed {
+  background: var(--danger);
+}
+
+.tab .dot.cancelled {
+  background: var(--warning);
+}
+
+.tab .count {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-faint);
+}
+
+@keyframes dot-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.tab-panels {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.tab-panel {
+  display: none;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 2px;
+}
+
+.tab-panel.active {
+  display: block;
+}
+
+.tab-panel[data-panel="options"].active,
+.tab-panel[data-panel="output"].active,
+.tab-panel[data-panel="debug"].active {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tab-panel[data-panel="output"].active,
+.tab-panel[data-panel="debug"].active {
+  overflow: hidden;
+}
+
+/* Footer with the command line and the run controls */
+
+.run-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 0 0 auto;
+  padding-top: 9px;
+  border-top: 1px solid var(--border);
+}
+
+.run-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
 /* Form */
 
 #command-form {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
 }
 
 .field {
@@ -437,6 +628,7 @@ input[type="number"],
 input[type="date"],
 select,
 textarea {
+  min-width: 0;
   width: 100%;
   background: var(--bg-inset);
   border: 1px solid var(--border);
@@ -550,20 +742,13 @@ select.invalid {
   font-size: 12px;
 }
 
-/* Run bar */
-
-.run-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
+/* Buttons */
 
 .btn {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 9px 16px;
+  padding: 8px 14px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--bg-elevated);
@@ -668,7 +853,7 @@ select.invalid {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
-  min-height: 260px;
+  min-height: 0;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
@@ -801,6 +986,105 @@ select.invalid {
   margin: 0;
 }
 
+/* Debug */
+
+.debug {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.debug-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 0 0 auto;
+}
+
+.debug-toolbar .muted {
+  font-size: 11.5px;
+}
+
+.debug-section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  flex: 0 0 auto;
+}
+
+.debug-env {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 3px 14px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-inset);
+  font-size: 12px;
+  flex: 0 0 auto;
+}
+
+.debug-env dt {
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.debug-env dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  overflow-wrap: anywhere;
+}
+
+.debug-events {
+  flex: 1 1 auto;
+  min-height: 120px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--console-bg);
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--console-text);
+}
+
+.debug-event {
+  display: flex;
+  gap: 8px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.debug-event .time {
+  color: color-mix(in srgb, var(--console-text) 55%, transparent);
+  flex: 0 0 auto;
+}
+
+.debug-event .category {
+  color: color-mix(in srgb, var(--console-text) 70%, transparent);
+  flex: 0 0 auto;
+  min-width: 46px;
+}
+
+.debug-event.level-warn .message {
+  color: var(--warning);
+}
+
+.debug-event.level-error .message {
+  color: var(--danger);
+}
+
+.debug-empty {
+  color: color-mix(in srgb, var(--console-text) 60%, transparent);
+}
+
 kbd {
   background: var(--bg-inset);
   border: 1px solid var(--border);
@@ -857,24 +1141,88 @@ kbd {
   }
 }
 
+/* Narrow windows: the sidebar turns into a strip above the workspace */
+
 @media (max-width: 900px) {
   main {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
   }
 
   .sidebar {
     border-right: 0;
     border-bottom: 1px solid var(--border);
-    max-height: 42vh;
+    max-height: 34vh;
+    flex: 0 0 auto;
   }
 
   #command-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 4px;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    align-content: start;
+    gap: 3px;
+    padding: 9px;
   }
 
   .group-title {
     grid-column: 1 / -1;
+    margin: 7px 6px 3px;
+  }
+
+  .group-title:first-child {
+    margin-top: 0;
+  }
+
+  .command {
+    margin-bottom: 0;
+  }
+
+  .brand-text p {
+    max-width: none;
+  }
+
+  .shortcuts {
+    display: none;
+  }
+}
+
+/* Short windows: trim vertical padding so that the panels stay usable */
+
+@media (max-height: 780px) {
+  .workspace {
+    padding: 9px 12px 8px;
+    gap: 8px;
+  }
+
+  .topbar {
+    padding: 7px 12px;
+  }
+
+  .command-header p {
+    -webkit-line-clamp: 1;
+  }
+
+  .run-bar {
+    gap: 6px;
+    padding-top: 7px;
+  }
+
+  .btn {
+    padding: 7px 12px;
+  }
+}
+
+@media (max-width: 720px) {
+  .brand-text p {
+    display: none;
+  }
+
+  .token {
+    flex-basis: 100%;
+    order: 3;
+  }
+
+  .topbar {
+    gap: 10px;
   }
 }

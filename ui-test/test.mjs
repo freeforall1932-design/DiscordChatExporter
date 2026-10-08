@@ -40,6 +40,7 @@ const html = USE_LOCAL ? await readLocal("index.html") : await (await fetch(`${B
 const script = USE_LOCAL
   ? await readLocal("app.js")
   : await (await fetch(`${BASE}/app.js`)).text();
+const css = USE_LOCAL ? await readLocal("app.css") : await (await fetch(`${BASE}/app.css`)).text();
 
 const virtualConsole = new VirtualConsole();
 const pageErrors = [];
@@ -331,7 +332,143 @@ check("no uncaught page errors", pageErrors.length === 0, pageErrors.join(" | ")
 
 // ————————————————————————————————— API —————————————————————————————————
 
-section("12. server API");
+section("12. layout rules");
+
+// The interface can't be laid out in this environment, so the rules that keep it from
+// overflowing and colliding are checked directly in the stylesheet
+const cssRules = css.replace(/\s+/g, " ");
+
+const ruleFor = (selector) => {
+  const start = cssRules.indexOf(selector + " {");
+  if (start < 0) return "";
+  const end = cssRules.indexOf("}", start);
+  return cssRules.slice(start, end);
+};
+
+check(
+  "the page itself never scrolls",
+  /html, body \{[^}]*overflow: hidden/.test(cssRules),
+  ruleFor("body").slice(0, 120)
+);
+check(
+  "the command button can shrink with its content",
+  /min-width: 0/.test(ruleFor(".command")),
+  ruleFor(".command")
+);
+check(
+  "the command label and name are stacked",
+  /flex-direction: column/.test(ruleFor(".command-text")),
+  ruleFor(".command-text")
+);
+check(
+  "both lines of a command name truncate instead of overflowing",
+  /white-space: nowrap/.test(ruleFor(".command-name, .command-raw-name")) &&
+    /text-overflow: ellipsis/.test(ruleFor(".command-name, .command-raw-name")),
+  ruleFor(".command-name, .command-raw-name")
+);
+check(
+  "the command list scrolls vertically only",
+  /overflow-x: hidden/.test(ruleFor("#command-list")),
+  ruleFor("#command-list")
+);
+check(
+  "the workspace does not scroll as a whole",
+  /overflow: hidden/.test(ruleFor(".workspace")),
+  ruleFor(".workspace")
+);
+check(
+  "panels scroll inside the fixed layout",
+  /overflow-y: auto/.test(ruleFor(".tab-panel")),
+  ruleFor(".tab-panel")
+);
+check(
+  "there are responsive rules for small windows",
+  cssRules.includes("@media (max-width: 900px)") &&
+    cssRules.includes("@media (max-height: 780px)"),
+  "missing breakpoints"
+);
+
+section("13. tabs");
+const tabs = $$(".tab").map((t) => t.id);
+console.log("  tabs:", tabs.join(", "));
+check(
+  "the interface has Options, Output and Debug tabs",
+  tabs.join(",") === "tab-options,tab-output,tab-debug",
+  tabs.join(",")
+);
+check("the options tab is open by default", $("panel-options").classList.contains("active"));
+check(
+  "the output panel is hidden while the options tab is open",
+  !$("panel-output").classList.contains("active")
+);
+
+click($("tab-output"));
+check(
+  "the output panel opens",
+  $("panel-output").classList.contains("active") &&
+    !$("panel-options").classList.contains("active")
+);
+check(
+  "the open tab is marked for assistive technology",
+  $("tab-output").getAttribute("aria-selected") === "true"
+);
+check(
+  "the output panel is linked to its tab",
+  $("panel-output").getAttribute("aria-labelledby") === "tab-output"
+);
+
+click($("tab-debug"));
+await waitFor(() => $$("#debug-env dt").length > 0, "the debug info to load");
+check("the debug panel opens", $("panel-debug").classList.contains("active"));
+const envLabels = $$("#debug-env dt").map((dt) => dt.textContent);
+console.log("  debug info:", envLabels.join(", "));
+check(
+  "the environment is listed",
+  envLabels.includes("Version") && envLabels.includes("Working directory"),
+  envLabels.join(",")
+);
+check("the runtime is listed", envLabels.includes("Runtime"));
+check(
+  "the browser and viewport are listed",
+  envLabels.includes("Browser") && envLabels.includes("Viewport"),
+  envLabels.join(",")
+);
+check(
+  "activity events are listed",
+  $$("#debug-events .debug-event").length > 0,
+  `${$$("#debug-events .debug-event").length} events`
+);
+check("the event count is shown on the tab", $("debug-count").textContent.length > 0);
+check(
+  "the diagnostics hide the token",
+  !$("debug-events").textContent.includes("test-token-value") &&
+    !$("debug-env").textContent.includes("test-token-value")
+);
+
+click($("tab-options"));
+check("switching back shows the form", $("panel-options").classList.contains("active"));
+
+section("14. running switches to the output tab");
+await idle();
+click(commandButton("guide"));
+await waitFor(() => $("command-name").textContent === "guide", "guide to be selected");
+check("the options tab is open before running", $("panel-options").classList.contains("active"));
+click($("run"));
+await waitFor(
+  () => $("panel-output").classList.contains("active"),
+  "the output tab to open automatically",
+  10000
+);
+check("running a command opens the output tab", $("panel-output").classList.contains("active"));
+await waitFor(() => /^Finished/.test($("status").textContent), "the run to finish", 30000);
+check(
+  "the output tab shows the run state",
+  /succeeded|failed|cancelled/.test($("output-dot").className),
+  $("output-dot").className
+);
+check("the completed output is visible", $("log").textContent.includes("developer tools"));
+
+section("15. server API");
 const info = await api("/api/info");
 check("GET /api/info returns the command catalog", info.status === 200 && info.json?.commands?.length === 8);
 check(

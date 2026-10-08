@@ -34,6 +34,12 @@ public partial class GuiCommand : ICommand
     [CommandOption("no-browser", Description = "Don't open the web browser automatically.")]
     public bool IsBrowserDisabled { get; set; }
 
+    [CommandOption(
+        "verbose",
+        Description = "Print the diagnostic events of the web interface to the console."
+    )]
+    public bool IsVerbose { get; set; }
+
     public async ValueTask ExecuteAsync(IConsole console)
     {
         var cancellationToken = console.RegisterCancellationHandler();
@@ -59,7 +65,17 @@ public partial class GuiCommand : ICommand
             prefixes.Add($"http://127.0.0.1:{Port}/");
         }
 
-        using var runManager = new GuiRunManager(executableName, version);
+        var debugLog = new GuiDebugLog { IsVerbose = IsVerbose };
+        debugLog.Written += @event =>
+            console.Output.WriteLine($"[{@event.Timestamp}] {@event.Level}: {@event.Message}");
+
+        debugLog.Info(
+            "server",
+            $"Starting '{executableName}' v{version} on {string.Join(", ", prefixes)} "
+                + $"from '{System.IO.Directory.GetCurrentDirectory()}'."
+        );
+
+        using var runManager = new GuiRunManager(executableName, version, debugLog);
         using var server = new GuiServer(
             new GuiServerOptions
             {
@@ -75,9 +91,12 @@ public partial class GuiCommand : ICommand
         try
         {
             server.Start();
+            debugLog.Info("server", "The web server is listening.");
         }
         catch (Exception ex)
         {
+            debugLog.Exception("server", ex);
+
             throw new CommandException(
                 $"Failed to start the web server on port {Port}: {ex.Message} "
                     + "Try specifying a different port with '--port <port>'.",
@@ -89,6 +108,7 @@ public partial class GuiCommand : ICommand
         await console.Output.WriteLineAsync();
         await console.Output.WriteLineAsync($"DiscordChatExporter {version}");
         await console.Output.WriteLineAsync($"Web interface: {displayUrl}");
+        await console.Output.WriteLineAsync($"Debug information: {displayUrl}api/debug");
         await console.Output.WriteLineAsync();
 
         if (isNetworkExposed)
@@ -118,6 +138,7 @@ public partial class GuiCommand : ICommand
         );
         await console.Output.WriteLineAsync(
             "Press Ctrl+C to stop. Add '--no-browser' to skip opening the browser next time."
+                + (IsVerbose ? "" : " Add '--verbose' to print diagnostics here.")
         );
         await console.Output.WriteLineAsync();
 
@@ -127,6 +148,7 @@ public partial class GuiCommand : ICommand
         // Serve requests until the command is cancelled
         await server.RunAsync(cancellationToken);
 
+        debugLog.Info("server", "The web server was stopped.");
         await console.Output.WriteLineAsync("Web interface stopped.");
     }
 

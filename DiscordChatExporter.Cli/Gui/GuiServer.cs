@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -35,17 +37,20 @@ internal sealed class GuiServer : IDisposable
 
     private readonly HttpListener _listener = new();
     private readonly GuiRunManager _runManager;
+    private readonly GuiDebugLog _debugLog;
     private readonly GuiServerOptions _options;
+    private int _requestCount;
     private readonly Dictionary<string, byte[]> _assetCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly string _startedAt = DateTimeOffset.Now.ToString(
         "o",
         CultureInfo.InvariantCulture
     );
 
-    public GuiServer(GuiServerOptions options, GuiRunManager runManager)
+    public GuiServer(GuiServerOptions options, GuiRunManager runManager, GuiDebugLog debugLog)
     {
         _options = options;
         _runManager = runManager;
+        _debugLog = debugLog;
     }
 
     public GuiServerOptions Options => _options;
@@ -93,6 +98,10 @@ internal sealed class GuiServer : IDisposable
 
     private async Task HandleRequestSafeAsync(HttpListenerContext context)
     {
+        var stopwatch = Stopwatch.StartNew();
+        var method = context.Request.HttpMethod.ToUpperInvariant();
+        var path = context.Request.Url?.PathAndQuery ?? "/";
+
         try
         {
             await HandleRequestAsync(context);
@@ -122,6 +131,13 @@ internal sealed class GuiServer : IDisposable
             {
                 // Ignore
             }
+
+            var count = Interlocked.Increment(ref _requestCount);
+            _debugLog.Info(
+                "http",
+                $"{method} {path} -> {context.Response.StatusCode} "
+                    + $"({stopwatch.ElapsedMilliseconds} ms, request #{count})"
+            );
         }
     }
 
@@ -197,6 +213,53 @@ internal sealed class GuiServer : IDisposable
                     _options.IsNetworkExposed,
                     !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DISCORD_TOKEN")),
                     GuiCommandCatalog.GetCommands()
+                )
+            );
+
+            return;
+        }
+
+        // /api/debug
+        if (
+            segments.Length == 2
+            && string.Equals(segments[1], "debug", StringComparison.OrdinalIgnoreCase)
+        )
+        {
+            if (method != "GET")
+            {
+                await WriteMethodNotAllowedAsync(response, "GET");
+                return;
+            }
+
+            await WriteJsonAsync(
+                response,
+                (int)HttpStatusCode.OK,
+                new GuiDebugDto(
+                    new GuiEnvironmentDto(
+                        ProductName,
+                        _options.VersionText,
+                        _options.ExecutableName,
+                        Directory.GetCurrentDirectory(),
+                        _options.DisplayUrl,
+                        _options.IsNetworkExposed,
+                        !string.IsNullOrWhiteSpace(
+                            Environment.GetEnvironmentVariable("DISCORD_TOKEN")
+                        ),
+                        _startedAt,
+                        RuntimeInformation.FrameworkDescription,
+                        Environment.ProcessId
+                    ),
+                    _debugLog.Snapshot(),
+                    _runManager
+                        .All.Select(r => new GuiRunSummaryDto(
+                            r.Id,
+                            r.Command,
+                            GuiRun.GetStateName(r.State),
+                            r.ExitCode,
+                            r.StartedAt.ToString("o", CultureInfo.InvariantCulture)
+                        ))
+                        .ToArray(),
+                    Volatile.Read(ref _requestCount)
                 )
             );
 
@@ -293,6 +356,7 @@ internal sealed class GuiServer : IDisposable
             {
                 try
                 {
+                    _debugLog.Warn("api", $"Cancellation requested for run '{run.Id}'.");
                     await run.Cancellation.CancelAsync();
                     run.Append(
                         Environment.NewLine
@@ -425,6 +489,11 @@ internal sealed class GuiServer : IDisposable
 
             if (errors.Count > 0)
             {
+                _debugLog.Warn(
+                    "api",
+                    $"Rejected a run of '{command.Name}': {string.Join(" ", errors)}"
+                );
+
                 await WriteJsonAsync(
                     response,
                     (int)HttpStatusCode.BadRequest,
@@ -444,6 +513,7 @@ internal sealed class GuiServer : IDisposable
         }
         catch (GuiRunBusyException ex)
         {
+            _debugLog.Warn("api", $"Rejected a run of '{commandName}': {ex.Message}");
             await WriteJsonAsync(
                 response,
                 (int)HttpStatusCode.Conflict,

@@ -96,7 +96,8 @@
           <input
             id="token"
             type="password"
-            placeholder="Discord token — needed by most commands"
+            placeholder="Discord token"
+            title="Discord token — needed by most commands"
             autocomplete="off"
             spellcheck="false"
           />
@@ -147,87 +148,177 @@
           </div>
         </header>
 
-        <form id="command-form" autocomplete="off" onsubmit="return false"></form>
-
-        <div class="run-bar">
-          <button id="run" class="btn primary" type="button">
-            <svg class="icon"><use href="#i-play" /></svg>
-            <span>Run</span>
+        <div class="tabs" role="tablist" aria-label="Panels">
+          <button
+            id="tab-options"
+            class="tab"
+            type="button"
+            role="tab"
+            aria-selected="true"
+            aria-controls="panel-options"
+          >
+            Options
           </button>
-          <button id="cancel" class="btn danger" type="button" disabled>
-            <svg class="icon"><use href="#i-stop" /></svg>
-            <span>Cancel</span>
+          <button
+            id="tab-output"
+            class="tab"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="panel-output"
+          >
+            Output
+            <span id="output-dot" class="dot"></span>
           </button>
-          <label class="check">
-            <input type="checkbox" id="advanced-toggle" />
-            Advanced options
-          </label>
-          <span class="spacer"></span>
-          <span id="validation" class="validation"></span>
+          <button
+            id="tab-debug"
+            class="tab"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="panel-debug"
+          >
+            Debug
+            <span id="debug-count" class="count"></span>
+          </button>
         </div>
 
-        <div class="cmdline" title="This is the exact command that will be executed">
-          <svg class="icon"><use href="#i-terminal" /></svg>
-          <code id="cmdline-preview"></code>
-          <button id="cmdline-copy" class="icon-button" type="button" title="Copy command">
-            <svg class="icon"><use href="#i-copy" /></svg>
-          </button>
-        </div>
+        <div class="tab-panels">
+          <div
+            id="panel-options"
+            class="tab-panel active"
+            data-panel="options"
+            role="tabpanel"
+            aria-labelledby="tab-options"
+          >
+            <form id="command-form" autocomplete="off" onsubmit="return false"></form>
 
-        <section class="console">
-          <header class="console-header">
-            <span id="console-title" class="console-title">Output</span>
-            <span id="run-badge" class="badge hidden"></span>
-            <span class="spacer"></span>
-            <div id="progress-wrap" class="progress hidden">
-              <div class="progress-track"><div id="progress-bar" class="progress-bar"></div></div>
-              <span id="progress-label" class="muted">0%</span>
+            <details class="raw">
+              <summary>
+                <svg class="icon"><use href="#i-bolt" /></svg>
+                Run a custom command line
+              </summary>
+              <p class="muted">
+                The full CLI is available here, for example
+                <code>export --help</code>, <code>channels -g 123 --include-threads all</code> or
+                <code>exportall -o ./exports/ --parallel 3</code>.
+              </p>
+              <div class="raw-row">
+                <input
+                  id="raw-input"
+                  type="text"
+                  placeholder="export --help"
+                  spellcheck="false"
+                  autocomplete="off"
+                />
+                <button id="raw-run" class="btn" type="button">
+                  <svg class="icon"><use href="#i-play" /></svg>
+                  <span>Run</span>
+                </button>
+              </div>
+            </details>
+
+            <p class="shortcuts muted">
+              Shortcuts: <kbd>Alt</kbd>+<kbd>1-9</kbd> switch command ·
+              <kbd>Ctrl</kbd>+<kbd>Enter</kbd> run · <kbd>Esc</kbd> cancel ·
+              <kbd>Ctrl</kbd>+<kbd>L</kbd> clear output
+            </p>
+          </div>
+
+          <div
+            id="panel-output"
+            class="tab-panel"
+            data-panel="output"
+            role="tabpanel"
+            aria-labelledby="tab-output"
+          >
+            <section class="console">
+              <header class="console-header">
+                <span id="console-title" class="console-title">Output</span>
+                <span id="run-badge" class="badge hidden"></span>
+                <span class="spacer"></span>
+                <div id="progress-wrap" class="progress hidden">
+                  <div class="progress-track">
+                    <div id="progress-bar" class="progress-bar"></div>
+                  </div>
+                  <span id="progress-label" class="muted">0%</span>
+                </div>
+                <label class="check">
+                  <input type="checkbox" id="autoscroll" checked /> Autoscroll
+                </label>
+                <button id="log-download" class="icon-button" type="button" title="Download log">
+                  <svg class="icon"><use href="#i-download" /></svg>
+                </button>
+                <button id="log-clear" class="icon-button" type="button" title="Clear output">
+                  <svg class="icon"><use href="#i-trash" /></svg>
+                </button>
+              </header>
+              <pre id="log" tabindex="0">Press “Run” to execute the selected command.</pre>
+            </section>
+          </div>
+
+          <div
+            id="panel-debug"
+            class="tab-panel"
+            data-panel="debug"
+            role="tabpanel"
+            aria-labelledby="tab-debug"
+          >
+            <div class="debug">
+              <div class="debug-toolbar">
+                <button id="debug-refresh" class="btn ghost" type="button">
+                  <svg class="icon"><use href="#i-bolt" /></svg>
+                  <span>Refresh</span>
+                </button>
+                <button id="debug-download" class="btn ghost" type="button">
+                  <svg class="icon"><use href="#i-download" /></svg>
+                  <span>Save debug info</span>
+                </button>
+                <label class="check">
+                  <input type="checkbox" id="debug-follow" checked /> Follow
+                </label>
+                <span class="spacer"></span>
+                <span id="debug-updated" class="muted"></span>
+              </div>
+
+              <dl id="debug-env" class="debug-env"></dl>
+
+              <div class="debug-section-title">Recent activity</div>
+              <div id="debug-events" class="debug-events">
+                <div class="debug-empty">Loading…</div>
+              </div>
             </div>
-            <label class="check">
-              <input type="checkbox" id="autoscroll" checked />
-              Autoscroll
-            </label>
-            <button id="log-download" class="icon-button" type="button" title="Download log">
-              <svg class="icon"><use href="#i-download" /></svg>
-            </button>
-            <button id="log-clear" class="icon-button" type="button" title="Clear output">
-              <svg class="icon"><use href="#i-trash" /></svg>
-            </button>
-          </header>
-          <pre id="log" tabindex="0">Press “Run” to execute the selected command.</pre>
-        </section>
+          </div>
+        </div>
 
-        <details class="raw">
-          <summary>
-            <svg class="icon"><use href="#i-bolt" /></svg>
-            Run a custom command line
-          </summary>
-          <p class="muted">
-            The full CLI is available here, for example
-            <code>export --help</code>, <code>channels -g 123 --include-threads all</code> or
-            <code>exportall -o ./exports/ --parallel 3</code>.
-          </p>
-          <div class="raw-row">
-            <input
-              id="raw-input"
-              type="text"
-              placeholder="export --help"
-              spellcheck="false"
-              autocomplete="off"
-            />
-            <button id="raw-run" class="btn" type="button">
+        <footer class="run-bar">
+          <div class="cmdline" title="This is the exact command that will be executed">
+            <svg class="icon"><use href="#i-terminal" /></svg>
+            <code id="cmdline-preview"></code>
+            <button id="cmdline-copy" class="icon-button" type="button" title="Copy command">
+              <svg class="icon"><use href="#i-copy" /></svg>
+            </button>
+          </div>
+
+          <div class="run-actions">
+            <button id="run" class="btn primary" type="button">
               <svg class="icon"><use href="#i-play" /></svg>
               <span>Run</span>
             </button>
+            <button id="cancel" class="btn danger" type="button" disabled>
+              <svg class="icon"><use href="#i-stop" /></svg>
+              <span>Cancel</span>
+            </button>
+            <label class="check">
+              <input type="checkbox" id="advanced-toggle" />
+              Advanced options
+            </label>
+            <span class="spacer"></span>
+            <span id="validation" class="validation"></span>
           </div>
-        </details>
-
-        <p class="shortcuts muted">
-          Shortcuts: <kbd>Alt</kbd>+<kbd>1-9</kbd> switch command ·
-          <kbd>Ctrl</kbd>+<kbd>Enter</kbd> run · <kbd>Esc</kbd> cancel ·
-          <kbd>Ctrl</kbd>+<kbd>L</kbd> clear output
-        </p>
+        </footer>
       </section>
+
     </main>
 
     <div id="toasts" class="toasts"></div>
