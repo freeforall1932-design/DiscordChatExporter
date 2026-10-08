@@ -1,31 +1,31 @@
 # Using the web interface
 
-The CLI ships with an optional web interface that exposes **every command as a button**, so you
-don't have to remember command-line options.
+The command-line interface can also be used from a browser: the `gui` command starts a small web
+server on your machine and exposes **every command as a button**, so you don't have to remember
+option names.
 
-It is a small web server that runs on your machine, inside the same executable as the CLI, and it
-executes the exact same command classes — the interface is a front-end for the CLI, not a
-re-implementation.
+The interface is a front-end for the CLI, not a re-implementation — pressing a button runs the
+same command classes that you would get by typing the command in a terminal.
 
 ## Starting it
 
 ```console
-./DiscordChatExporter.Cli gui
+DiscordChatExporter.Cli gui
 ```
 
-The interface is then available at <http://localhost:5000/> and your default browser opens
-automatically. Press <kbd>Ctrl</kbd>+<kbd>C</kbd> in the terminal to stop the server.
+The interface opens automatically at <http://localhost:5000/>. Press
+<kbd>Ctrl</kbd>+<kbd>C</kbd> in the terminal to stop the server.
 
-| Option         | Description                                                                   |
-| -------------- | ----------------------------------------------------------------------------- |
-| `-p, --port`   | Port to listen on (default: `5000`)                                           |
-| `--host`       | `localhost` (default) only allows this machine, `any` also allows your LAN    |
-| `--no-browser` | Don't open the browser automatically                                          |
+| Option         | Description                                                                |
+| -------------- | -------------------------------------------------------------------------- |
+| `-p, --port`   | Port to listen on (default: `5000`)                                        |
+| `--host`       | `localhost` (default) only accepts connections from this machine, `any` also accepts connections from your local network |
+| `--no-browser` | Don't open the browser automatically                                       |
 
 For example, to use the interface from another device on your network:
 
 ```console
-./DiscordChatExporter.Cli gui --host any --port 8080
+DiscordChatExporter.Cli gui --host any --port 8080
 ```
 
 > [!WARNING]
@@ -34,66 +34,84 @@ For example, to use the interface from another device on your network:
 
 ## What you can do
 
-1. **Paste your token** in the field at the top.
-   It is stored in your browser's local storage (click the trash icon next to the field to forget
-   it), and it is sent to the local server with every command that needs it.
-   If `DISCORD_TOKEN` is set in the environment, DCE uses that instead.
+### 1. Enter your token
 
-2. **Pick a command** from the sidebar. Every command available in the CLI is listed, grouped into
-   *Discover*, *Export* and *Help*:
+Paste the token into the field at the top. It is saved in your browser's local storage (so you only
+have to paste it once) unless you untick *Remember*, and the trash button removes it again. The
+token is never displayed in the interface or in the command line preview — commands that need it
+show `--token ***` instead.
 
-   | Button                  | Command       |
-   | ----------------------- | ------------- |
-   | List servers            | `guilds`      |
-   | List channels           | `channels`    |
-   | List direct messages    | `dm`          |
-   | Export channels         | `export`      |
-   | Export a whole server   | `exportguild` |
-   | Export all direct messages | `exportdm` |
-   | Export everything       | `exportall`   |
-   | How to get a token      | `guide`       |
+If the `DISCORD_TOKEN` environment variable is set on the machine running the server, you can leave
+the field empty and that token will be used instead. The `guide` command explains how to obtain a
+token.
 
-   The list is generated from the CLI itself, so a command that is added (or removed) in a future
-   version shows up (or disappears) automatically.
+### 2. Pick a command
 
-3. **Fill in the options.** Fields are generated from the command's own options, with the same
-   names, descriptions and defaults as the command line. Options that are only relevant in rare
-   cases are hidden behind *Advanced options*.
+Every command from the CLI is listed in the sidebar, grouped into *Discover*, *Export* and *Help*:
 
-   The command line that will be executed is always shown below the form, for example:
+| Button                   | Command       | What it does                                        |
+| ------------------------ | ------------- | --------------------------------------------------- |
+| List servers             | `guilds`      | Shows all servers your token can access             |
+| List channels            | `channels`    | Shows all channels in a server, with their IDs      |
+| List direct messages     | `dm`          | Shows all direct message channels                   |
+| Export channels          | `export`      | Exports one or more channels                        |
+| Export a whole server    | `exportguild` | Exports every channel in a server                   |
+| Export all direct messages | `exportdm`  | Exports every direct message channel                |
+| Export everything        | `exportall`   | Exports everything the token can access             |
+| How to get a token       | `guide`       | Explains how to obtain the token, server or channel ID |
 
-   ```console
-   DiscordChatExporter.Cli export --channel 803194314627285022 --format Json --output ./exports/
-   ```
+The list is generated from the CLI itself, so a command that is added in a future version appears
+in the interface automatically.
 
-   Copying it is a convenient way to move a task from the interface into a script.
+### 3. Fill in the options
 
-4. **Press `Run`.** The command executes in the server process, and its output is streamed into the
-   console panel below, including progress. `Cancel` (or <kbd>Esc</kbd>) stops a running command,
-   and the *download* button saves the log.
+Each option of the selected command gets its own field, with the same name, description and default
+value as on the command line. Rarely used options are hidden behind *Advanced options*.
 
-5. **Anything the interface doesn't cover** can be run from *Run a custom command line* at the
-   bottom, which accepts any CLI command, including `--help`:
+The command line that will be executed is always shown above the output panel, for example:
 
-   ```console
-   export --help
-   exportall -o ./exports/ --parallel 3 --media
-   ```
+```console
+DiscordChatExporter.Cli export --channel 803194314627285022 --format Json --output ./exports/
+```
+
+Copying it is a convenient way to move a task from the interface into a script.
+
+### 4. Run it
+
+Press *Run* (or <kbd>Ctrl</kbd>+<kbd>Enter</kbd>). The command executes inside the server process
+and its output — including progress bars — is streamed into the panel below. *Cancel*
+(or <kbd>Esc</kbd>) stops a running command, and the download button saves the output as a file.
+
+Only one command can run at a time, so that the interface can't accidentally flood the Discord API.
+Use the `--parallel` option to export several channels at the same time.
+
+### 5. Anything else
+
+The *Run a custom command line* box at the bottom accepts any command line, including commands and
+options that don't have a field, such as:
+
+```console
+export --help
+channels -g 123 --include-threads all
+exportall -o ./exports/ --parallel 3
+```
 
 ## Keyboard shortcuts
 
-| Keys                       | Action                  |
-| -------------------------- | ----------------------- |
-| <kbd>Alt</kbd>+<kbd>1..9</kbd> | Switch between commands |
-| <kbd>Ctrl</kbd>+<kbd>Enter</kbd> | Run the current command |
-| <kbd>Esc</kbd>             | Cancel the running command |
-| <kbd>Ctrl</kbd>+<kbd>L</kbd> | Clear the output        |
+| Keys                           | Action                   |
+| ------------------------------ | ------------------------ |
+| <kbd>Alt</kbd>+<kbd>1</kbd>…<kbd>9</kbd> | Switch between commands |
+| <kbd>Ctrl</kbd>+<kbd>Enter</kbd> | Run the selected command |
+| <kbd>Esc</kbd>                 | Cancel the running command |
+| <kbd>Ctrl</kbd>+<kbd>L</kbd>   | Clear the output        |
 
 ## Notes
 
-- Only one command can run at a time, so that the interface can't accidentally flood the Discord
-  API (use the `--parallel` option to export several channels at the same time).
-- Exports are written relative to the working directory of the server process, which is shown at
-  the bottom of the sidebar.
-- The interface is served from embedded resources — no internet connection is needed to load it,
-  and it works the same on Windows, macOS and Linux.
+- Exports are written relative to the working directory of the server process, which is shown at the
+  bottom of the sidebar.
+- The interface is served from resources embedded in the executable — no internet connection is
+  required to load it, and it works the same on Windows, macOS and Linux.
+- The web interface is meant for local use. If you only need to export a few channels on the same
+  machine and prefer a desktop window, use the [desktop GUI](Using-the-GUI.md) instead.
+- The interface is covered by end-to-end tests that run in CI: `scripts/smoke-test-gui.sh` drives the
+  API with `curl`, while `ui-test/` loads the page into a DOM and clicks through it (`ui-test/run.sh`).
