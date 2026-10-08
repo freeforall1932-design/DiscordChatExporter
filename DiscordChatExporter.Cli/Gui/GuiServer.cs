@@ -37,7 +37,10 @@ internal sealed class GuiServer : IDisposable
     private readonly GuiRunManager _runManager;
     private readonly GuiServerOptions _options;
     private readonly Dictionary<string, byte[]> _assetCache = new(StringComparer.OrdinalIgnoreCase);
-    private readonly string _startedAt = DateTimeOffset.Now.ToString("o", CultureInfo.InvariantCulture);
+    private readonly string _startedAt = DateTimeOffset.Now.ToString(
+        "o",
+        CultureInfo.InvariantCulture
+    );
 
     public GuiServer(GuiServerOptions options, GuiRunManager runManager)
     {
@@ -171,7 +174,10 @@ internal sealed class GuiServer : IDisposable
         var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
 
         // /api/info
-        if (segments.Length == 2 && string.Equals(segments[1], "info", StringComparison.OrdinalIgnoreCase))
+        if (
+            segments.Length == 2
+            && string.Equals(segments[1], "info", StringComparison.OrdinalIgnoreCase)
+        )
         {
             if (method != "GET")
             {
@@ -189,9 +195,7 @@ internal sealed class GuiServer : IDisposable
                     Directory.GetCurrentDirectory(),
                     _startedAt,
                     _options.IsNetworkExposed,
-                    !string.IsNullOrWhiteSpace(
-                        Environment.GetEnvironmentVariable("DISCORD_TOKEN")
-                    ),
+                    !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DISCORD_TOKEN")),
                     GuiCommandCatalog.GetCommands()
                 )
             );
@@ -200,7 +204,10 @@ internal sealed class GuiServer : IDisposable
         }
 
         // /api/runs
-        if (segments.Length == 2 && string.Equals(segments[1], "runs", StringComparison.OrdinalIgnoreCase))
+        if (
+            segments.Length == 2
+            && string.Equals(segments[1], "runs", StringComparison.OrdinalIgnoreCase)
+        )
         {
             if (method == "POST")
             {
@@ -213,7 +220,9 @@ internal sealed class GuiServer : IDisposable
                 await WriteJsonAsync(
                     response,
                     (int)HttpStatusCode.OK,
-                    _runManager.All.Select(r => r.Snapshot(0) with { Output = string.Empty }).ToArray()
+                    _runManager
+                        .All.Select(r => r.Snapshot(0) with { Output = string.Empty })
+                        .ToArray()
                 );
                 return;
             }
@@ -223,7 +232,10 @@ internal sealed class GuiServer : IDisposable
         }
 
         // /api/runs/*
-        if (segments.Length >= 3 && string.Equals(segments[1], "runs", StringComparison.OrdinalIgnoreCase))
+        if (
+            segments.Length >= 3
+            && string.Equals(segments[1], "runs", StringComparison.OrdinalIgnoreCase)
+        )
         {
             // /api/runs/current
             if (string.Equals(segments[2], "current", StringComparison.OrdinalIgnoreCase))
@@ -236,7 +248,10 @@ internal sealed class GuiServer : IDisposable
                     (int)HttpStatusCode.OK,
                     new GuiCurrentRunDto(
                         currentSnapshot is not null
-                            ? currentSnapshot with { Output = string.Empty }
+                            ? currentSnapshot with
+                            {
+                                Output = string.Empty,
+                            }
                             : null
                     )
                 );
@@ -280,7 +295,9 @@ internal sealed class GuiServer : IDisposable
                 {
                     await run.Cancellation.CancelAsync();
                     run.Append(
-                        Environment.NewLine + "[cancellation requested, waiting for the command to stop]" + Environment.NewLine
+                        Environment.NewLine
+                            + "[cancellation requested, waiting for the command to stop]"
+                            + Environment.NewLine
                     );
                 }
                 catch (ObjectDisposedException) { }
@@ -288,7 +305,10 @@ internal sealed class GuiServer : IDisposable
                 await WriteJsonAsync(
                     response,
                     (int)HttpStatusCode.OK,
-                    run.Snapshot(0) with { Output = string.Empty }
+                    run.Snapshot(0) with
+                    {
+                        Output = string.Empty,
+                    }
                 );
                 return;
             }
@@ -375,13 +395,7 @@ internal sealed class GuiServer : IDisposable
                 && GuiCommandCatalog.TryGetCommand(commandName) is { RequiresToken: true }
             )
             {
-                arguments =
-                [
-                    arguments[0],
-                    "--token",
-                    token,
-                    .. arguments.Skip(1),
-                ];
+                arguments = [arguments[0], "--token", token, .. arguments.Skip(1)];
             }
         }
         // Command with values collected in the interface

@@ -89,11 +89,10 @@ internal sealed partial class GuiRun
 
             ExitCode = exitCode;
             FinishedAt = DateTimeOffset.Now;
-            State = isCancelled
-                ? GuiRunState.Cancelled
-                : exitCode == 0
-                    ? GuiRunState.Succeeded
-                    : GuiRunState.Failed;
+            State =
+                isCancelled ? GuiRunState.Cancelled
+                : exitCode == 0 ? GuiRunState.Succeeded
+                : GuiRunState.Failed;
 
             _isFinished = true;
         }
@@ -170,7 +169,14 @@ internal sealed partial class GuiRun
             return null;
 
         var lastMatch = matches[^1];
-        if (!int.TryParse(lastMatch.Groups[1].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var percentage))
+        if (
+            !int.TryParse(
+                lastMatch.Groups[1].Value,
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out var percentage
+            )
+        )
             return null;
 
         return Math.Clamp(percentage, 0, 100);

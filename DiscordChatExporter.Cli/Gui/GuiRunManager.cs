@@ -65,11 +65,7 @@ internal sealed class GuiRunManager(string executableName, string versionText) :
             if (_runs.LastOrDefault(r => !r.IsFinished) is { } activeRun)
                 throw new GuiRunBusyException(activeRun);
 
-            var commandLine = GuiCommandCatalog.FormatCommandLine(
-                executableName,
-                arguments,
-                token
-            );
+            var commandLine = GuiCommandCatalog.FormatCommandLine(executableName, arguments, token);
 
             run = new GuiRun(commandName, commandLine);
             _runs.Add(run);

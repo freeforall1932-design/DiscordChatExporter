@@ -41,13 +41,11 @@ public partial class GuiCommand : ICommand
         var isNetworkExposed = IsAnyHost(Host);
         var displayUrl = $"http://localhost:{Port}/";
 
-        var executableName =
-            Environment.ProcessPath is { Length: > 0 } processPath
-                ? System.IO.Path.GetFileName(processPath)
-                : "DiscordChatExporter.Cli";
+        var executableName = Environment.ProcessPath is { Length: > 0 } processPath
+            ? System.IO.Path.GetFileName(processPath)
+            : "DiscordChatExporter.Cli";
 
-        var version =
-            Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "unknown";
+        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "unknown";
 
         var prefixes = new List<string>();
 
@@ -102,9 +100,7 @@ public partial class GuiCommand : ICommand
             await console.Output.WriteLineAsync();
         }
 
-        if (
-            !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DISCORD_TOKEN"))
-        )
+        if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DISCORD_TOKEN")))
         {
             await console.Output.WriteLineAsync(
                 "A token was found in the DISCORD_TOKEN environment variable and will be used "
@@ -115,10 +111,7 @@ public partial class GuiCommand : ICommand
 
         await console.Output.WriteLineAsync(
             "Available commands: "
-                + string.Join(
-                    " ",
-                    GuiCommandCatalog.GetCommands().Select(c => c.Name)
-                )
+                + string.Join(" ", GuiCommandCatalog.GetCommands().Select(c => c.Name))
         );
         await console.Output.WriteLineAsync(
             $"Files are exported relative to: {System.IO.Directory.GetCurrentDirectory()}"

@@ -90,11 +90,7 @@ internal static class GuiCommandCatalog
                 Placeholder: "from:userId has:image",
                 IsAdvanced: true
             ),
-            ["parallel"] = new GuiOptionOverlay(
-                "Parallel limit",
-                Kind: "number",
-                IsAdvanced: true
-            ),
+            ["parallel"] = new GuiOptionOverlay("Parallel limit", Kind: "number", IsAdvanced: true),
             ["reverse"] = new GuiOptionOverlay("Newest messages first"),
             ["markdown"] = new GuiOptionOverlay("Format markdown, mentions and emojis"),
             ["media"] = new GuiOptionOverlay("Download media (avatars, files, images)"),
@@ -105,11 +101,7 @@ internal static class GuiCommandCatalog
                 Placeholder: "./exports/media/",
                 IsAdvanced: true
             ),
-            ["locale"] = new GuiOptionOverlay(
-                "Locale",
-                Placeholder: "en-US",
-                IsAdvanced: true
-            ),
+            ["locale"] = new GuiOptionOverlay("Locale", Placeholder: "en-US", IsAdvanced: true),
             ["utc"] = new GuiOptionOverlay("Normalize timestamps to UTC"),
             ["include-vc"] = new GuiOptionOverlay("Include voice channels"),
             ["include-dm"] = new GuiOptionOverlay("Include direct messages"),
@@ -125,10 +117,7 @@ internal static class GuiCommandCatalog
                 IsAdvanced: true
             ),
             ["bot"] = new GuiOptionOverlay("Bot token (deprecated)", IsAdvanced: true),
-            ["dateformat"] = new GuiOptionOverlay(
-                "Date format (deprecated)",
-                IsAdvanced: true
-            ),
+            ["dateformat"] = new GuiOptionOverlay("Date format (deprecated)", IsAdvanced: true),
             ["fuck-russia"] = new GuiOptionOverlay(
                 "Hide the Ukraine support message",
                 IsAdvanced: true
@@ -139,10 +128,7 @@ internal static class GuiCommandCatalog
 
     private static readonly Lazy<IReadOnlyDictionary<string, GuiCommandDto>> CommandsByName = new(
         () =>
-            Commands.Value.ToDictionary(
-                c => c.Name,
-                StringComparer.OrdinalIgnoreCase
-            )
+            Commands.Value.ToDictionary(c => c.Name, StringComparer.OrdinalIgnoreCase)
     );
 
     public static IReadOnlyList<GuiCommandDto> GetCommands() => Commands.Value;
@@ -234,8 +220,8 @@ internal static class GuiCommandCatalog
                     overlay?.Description ?? descriptor.Description,
                     overlay?.Group ?? "Other",
                     overlay?.Icon ?? "terminal",
-                    descriptor.Inputs
-                        .OfType<CommandOptionDescriptor>()
+                    descriptor
+                        .Inputs.OfType<CommandOptionDescriptor>()
                         .Any(o =>
                             string.Equals(
                                 o.Name,
@@ -251,16 +237,11 @@ internal static class GuiCommandCatalog
 
         return
         [
-            .. commands
-                .OrderBy(c => c.Order)
-                .ThenBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
+            .. commands.OrderBy(c => c.Order).ThenBy(c => c.Name, StringComparer.OrdinalIgnoreCase),
         ];
     }
 
-    private static GuiOptionDto BuildOption(
-        CommandOptionDescriptor option,
-        object? instance
-    )
+    private static GuiOptionDto BuildOption(CommandOptionDescriptor option, object? instance)
     {
         var name = option.Name!;
         var propertyType = option.Property.Type;
@@ -278,7 +259,7 @@ internal static class GuiCommandCatalog
             choices =
             [
                 .. Enum.GetNames(underlyingType)
-                    .Select(v => new GuiOptionChoiceDto(v, GetChoiceLabel(v)))
+                    .Select(v => new GuiOptionChoiceDto(v, GetChoiceLabel(v))),
             ];
         }
 
@@ -289,9 +270,11 @@ internal static class GuiCommandCatalog
         var label =
             overlay?.Label
             ?? GetAutoLabel(name)
-            ?? (option.Description is { Length: > 0 } description
-                ? char.ToUpperInvariant(description[0]) + description[1..].TrimEnd('.')
-                : name);
+            ?? (
+                option.Description is { Length: > 0 } description
+                    ? char.ToUpperInvariant(description[0]) + description[1..].TrimEnd('.')
+                    : name
+            );
 
         return new GuiOptionDto(
             name,
@@ -620,7 +603,6 @@ internal static class GuiCommandCatalog
 
         return buffer.ToString();
     }
-
 }
 
 internal sealed record GuiCommandOverlay(
