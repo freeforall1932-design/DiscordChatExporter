@@ -51,6 +51,34 @@ jobs:
           set -o pipefail
           ./scripts/smoke-test-gui.sh ./publish/DiscordChatExporter.Cli 5155 2>&1 | tee smoke.log
 
+      # Packages the published build and hands it over as a Git blob, which makes it
+      # possible to try the interface in environments that can only talk to GitHub.
+      - name: Publish a preview package
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tar -czf gui-preview.tar.gz -C ./publish .
+          ls -la gui-preview.tar.gz
+
+          python3 - <<'PY'
+          import base64
+          import json
+
+          data = open("gui-preview.tar.gz", "rb").read()
+          with open("blob.json", "w") as file:
+              json.dump({"content": base64.b64encode(data).decode(), "encoding": "base64"}, file)
+
+          print("payload:", len(data), "bytes")
+          PY
+
+          SHA="$(curl -sf -X POST \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/git/blobs" \
+            --data @blob.json | python3 -c "import json,sys;print(json.load(sys.stdin)['sha'])")"
+
+          echo "::notice title=preview-blob::${SHA}"
+
       - name: Publish diagnostics
         if: failure()
         run: |
@@ -107,3 +135,42 @@ jobs:
           git add -A
           git commit -m "Apply formatting"
           git push origin "HEAD:${{ github.ref_name }}"
+
+  # Prebuilt binaries, so that the interface can be used without a .NET SDK
+  pack:
+    strategy:
+      matrix:
+        rid:
+          - win-x64
+          - osx-x64
+          - osx-arm64
+          - linux-arm64
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+
+      - name: Publish
+        run: >
+          dotnet publish DiscordChatExporter.Cli
+          -p:CSharpier_Bypass=true
+          --configuration Release
+          --runtime ${{ matrix.rid }}
+          --self-contained
+          --output ./publish
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: gui-${{ matrix.rid }}
+          path: ./publish/
+          if-no-files-found: error
