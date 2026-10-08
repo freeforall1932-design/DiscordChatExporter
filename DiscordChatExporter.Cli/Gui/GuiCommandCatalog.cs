@@ -429,7 +429,9 @@ internal static class GuiCommandCatalog
     {
         var arguments = new List<string> { command.Name };
 
-        if (!string.IsNullOrWhiteSpace(token))
+        // Only inject the token into commands that actually accept one (for example, the
+        // "guide" command does not), otherwise the command-line parser rejects the arguments
+        if (command.RequiresToken && !string.IsNullOrWhiteSpace(token))
         {
             arguments.Add("--token");
             arguments.Add(token);

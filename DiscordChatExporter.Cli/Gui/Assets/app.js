@@ -15,7 +15,12 @@ const state = {
   /** @type {Record<string, string>} */ knownIds: {},
   showAdvanced: false,
   /** @type {any} */ run: null,
+  starting: false,
   cursor: 0,
+  pendingText: "",
+  pendingNode: null,
+  /** Nodes of the most recently written lines, used to redraw progress bars in place */
+  logTail: [],
   polling: false,
   token: "",
   remember: true,
@@ -164,6 +169,7 @@ function selectCommand(name) {
 
   renderForm();
   refreshCommandLinePreview();
+  refreshRunAvailability();
 }
 
 // —————————————————————————————— Form ——————————————————————————————
@@ -456,9 +462,12 @@ function refreshRunAvailability() {
   const errors = getValidationErrors();
   element("validation").textContent = errors.join(" ");
 
-  const isRunning = state.run ? state.run.state === "running" : false;
-  element("run").disabled = isRunning || errors.length > 0;
-  element("cancel").disabled = !isRunning;
+  // While the request is in flight the command also counts as busy, so that pressing the
+  // button twice can't start two commands
+  const isBusy = state.starting || (state.run ? state.run.state === "running" : false);
+  element("run").disabled = isBusy || errors.length > 0;
+  element("raw-run").disabled = isBusy;
+  element("cancel").disabled = !isBusy;
 }
 
 function getValidationErrors() {
@@ -581,13 +590,16 @@ async function runRawCommand() {
 }
 
 async function startRun(request) {
-  if (state.run?.state === "running") {
+  if (state.starting || state.run?.state === "running") {
     showToast(
-      `'${state.run.command}' is still running. Cancel it before starting another command.`,
+      `'${state.run?.command ?? "Another command"}' is still running. Cancel it before starting another command.`,
       "warning"
     );
     return;
   }
+
+  state.starting = true;
+  refreshRunAvailability();
 
   try {
     const run = await postJson("/api/runs", request);
@@ -603,6 +615,9 @@ async function startRun(request) {
 
     const details = (error.details || []).join(" ");
     showToast(`${error.message}${details ? ` ${details}` : ""}`, "error");
+  } finally {
+    state.starting = false;
+    refreshRunAvailability();
   }
 }
 
@@ -755,8 +770,30 @@ function addKnownIdToList(id, name) {
 
 // —————————————————————————————— Console ——————————————————————————————
 
+// Matches the lines that progress bars are drawn on, for example "[####----] 45%"
+const PROGRESS_LINE_RE = /(\d{1,3}%|\[[=#+\-.\u2500-\u259F ]{3,}\]|[\u2588\u2591\u2592\u2593]{2,})/;
+
+/** Whether the line is a progress bar, which is redrawn repeatedly while a command runs. */
+function isProgressLine(line) {
+  return PROGRESS_LINE_RE.test(line);
+}
+
+/**
+ * The line with all digits and progress bar characters removed, so that the consecutive
+ * progress frames of the same line compare equal.
+ */
+function getLineShape(line) {
+  return line
+    .replace(/\d+/g, "#")
+    .replace(/[#=+\-.\u2500-\u259F]{3,}/g, "<bar>")
+    .trimEnd();
+}
+
 function setLog(text) {
   element("log").textContent = text;
+  state.pendingText = "";
+  state.pendingNode = null;
+  state.logTail = [];
 }
 
 function appendLog(text, className) {
@@ -767,10 +804,60 @@ function appendLog(text, className) {
     span.className = className;
     span.textContent = text;
     log.append(span);
-  } else {
-    log.append(document.createTextNode(text));
+    state.logTail = [];
+    scrollLog();
+    return;
   }
 
+  const lines = (state.pendingText + text).split("\n");
+  state.pendingText = lines.pop() ?? "";
+
+  if (state.pendingNode) {
+    state.pendingNode.remove();
+    state.pendingNode = null;
+  }
+
+  for (const line of lines) {
+    writeLine(line);
+  }
+
+  if (state.pendingText) {
+    state.pendingNode = document.createTextNode(state.pendingText);
+    log.append(state.pendingNode);
+  }
+
+  scrollLog();
+}
+
+function writeLine(line) {
+  const log = element("log");
+  const shape = getLineShape(line);
+  const isProgress = isProgressLine(line);
+
+  // Progress bars are redrawn by the command every time they change, so instead of
+  // appending a new line for every frame, the previous one is updated in place. The same
+  // applies to the lines around it, as long as a progress bar is nearby.
+  const isProgressRegion = isProgress || state.logTail.some((entry) => entry.isProgress);
+
+  if (isProgressRegion) {
+    for (let i = state.logTail.length - 1; i >= 0; i--) {
+      if (state.logTail[i].shape === shape) {
+        state.logTail[i].node.nodeValue = line + "\n";
+        state.logTail[i].isProgress = state.logTail[i].isProgress || isProgress;
+        return;
+      }
+    }
+  }
+
+  const node = document.createTextNode(line + "\n");
+  log.append(node);
+
+  state.logTail.push({ node, shape, isProgress });
+  if (state.logTail.length > 8) state.logTail.shift();
+}
+
+function scrollLog() {
+  const log = element("log");
   if (element("autoscroll").checked) {
     log.scrollTop = log.scrollHeight;
   }
@@ -827,6 +914,12 @@ function wireEvents() {
   element("run").addEventListener("click", () => void runSelectedCommand());
   element("cancel").addEventListener("click", () => void cancelRun());
   element("raw-run").addEventListener("click", () => void runRawCommand());
+  element("raw-input").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      void runRawCommand();
+    }
+  });
   element("log-clear").addEventListener("click", clearLog);
   element("log-download").addEventListener("click", downloadLog);
 

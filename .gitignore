@@ -10,3 +10,7 @@ obj/
 
 # Test results
 TestResults/
+
+# Dependencies of the web interface test
+node_modules/
+ui-test/server.log

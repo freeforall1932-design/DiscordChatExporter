@@ -51,6 +51,11 @@ jobs:
           set -o pipefail
           ./scripts/smoke-test-gui.sh ./publish/DiscordChatExporter.Cli 5155 2>&1 | tee smoke.log
 
+      - name: Test the interface
+        run: |
+          set -o pipefail
+          ./ui-test/run.sh ./publish/DiscordChatExporter.Cli 5156 2>&1 | tee ui-test.log
+
       # Packages the published build and hands it over as a Git blob, which makes it
       # possible to try the interface in environments that can only talk to GitHub.
       - name: Publish a preview package
@@ -83,7 +88,7 @@ jobs:
         if: failure()
         run: |
           mkdir -p ci-diagnostics
-          for file in gui.log smoke.log info.json run.json raw-run.json error.json index.html; do
+          for file in gui.log smoke.log ui-test.log ui-test/server.log info.json run.json raw-run.json error.json index.html; do
             [ -f "$file" ] && cp "$file" ci-diagnostics/ || true
           done
 
