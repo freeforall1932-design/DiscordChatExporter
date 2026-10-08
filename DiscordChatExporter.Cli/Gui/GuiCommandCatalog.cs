@@ -598,9 +598,19 @@ internal static class GuiCommandCatalog
         return buffer.ToString();
     }
 
-    /// <summary>
-    /// All input converters that are used by the CLI commands, exposed so that the interface
-    /// can pass values in the same format as the command line.
-    /// </summary>
-    internal static IReadOnlyList<IInputConverter> GetConverters() => [];
 }
+
+internal sealed record GuiCommandOverlay(
+    string Title,
+    string Group,
+    string Icon,
+    string? Description = null
+);
+
+internal sealed record GuiOptionOverlay(
+    string? Label = null,
+    string? Kind = null,
+    string? Placeholder = null,
+    bool IsAdvanced = false,
+    string? DefaultValue = null
+);
