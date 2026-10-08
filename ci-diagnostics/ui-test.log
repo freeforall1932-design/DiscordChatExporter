@@ -3,11 +3,28 @@
   commands: guilds, channels, dm, export, exportguild, exportdm, exportall, guide
   ok   all 8 CLI commands are exposed as buttons
   ok   the gui command is not listed
-  ok   commands are grouped
+  ok   the buttons are a single list without headings
+  ok   the token guide sits right after the export commands
   ok   a command is selected on load
   ok   the version is displayed
   ok   the working directory is displayed
   ok   the command line preview is rendered
+  ok   the options tab is open on a fresh page
+
+1b. quick-start presets
+  presets: export-everything-html, export-everything-json, export-server, export-dms, export-one-person, export-with-media, list-servers, guide
+  ok   the quick-start presets are offered
+  ok   the preset row is visible
+  ok   presets carry a description
+  ok   the JSON preset exists
+  ok   the preset selects its command
+  ok   the preset fills in the format
+  ok   the preset fills in the output path
+  ok   the command line reflects the preset
+  ok   the applied preset is highlighted
+  ok   changing a value clears the highlight
+  ok   the one-person preset exists
+  ok   the one-person preset uses a server export with a user filter
 
 2. token field
   ok   the token is stored locally
@@ -42,6 +59,8 @@
   ok   the output is streamed into the console
   ok   the executed command line is shown
   ok   the status is updated
+  ok   the finished status is short enough to fit next to the icons
+  ok   the full status is available as a tooltip
   ok   the exit code is shown
   ok   run is available again
   ok   the log can be downloaded
@@ -64,7 +83,7 @@
   ok   the theme is persisted
 
 10. advanced options
-  ok   advanced options are revealed
+  FAIL advanced options are revealed -> 20 -> 20
 
 11. keyboard shortcuts
   ok   alt+number switches commands
@@ -76,15 +95,18 @@
   ok   the command label and name are stacked
   ok   both lines of a command name truncate instead of overflowing
   ok   the command list scrolls vertically only
+  ok   no space is reserved for group headings
+  ok   all buttons fit in the sidebar without scrolling
   ok   the workspace does not scroll as a whole
   ok   panels scroll inside the fixed layout
+  ok   the status pill truncates instead of overlapping the icons
   ok   there are responsive rules for small windows
 
 13. tabs
   tabs: tab-options, tab-output, tab-debug
   ok   the interface has Options, Output and Debug tabs
-  FAIL the options tab is open by default
-  FAIL the output panel is hidden while the options tab is open
+  ok   the options tab opens
+  ok   only one panel is open at a time
   ok   the output panel opens
   ok   the open tab is marked for assistive technology
   ok   the output panel is linked to its tab
@@ -126,17 +148,16 @@
   ok   the token is not present in the command line
   ok   the log can be downloaded from the server
 
-87/89 checks passed
+107/108 checks passed
 
 Failures:
-  - the options tab is open by default
-  - the output panel is hidden while the options tab is open
+  - advanced options are revealed -> 20 -> 20
 
 Diagnostics:
-  status: "Finished guide"
+  status: "Done guide"
   validation: ""
-  toasts: ["The saved token was removed from this browser.","'guide' finished successfully.","'guide' finished successfully.","'nonsense-command' failed with exit code 1.","'guide' finished successfully."]
-  page run: {"id":"56e6765b7b8c","command":"guide","commandLine":"DiscordChatExporter.Cli guide","state":"succeeded","exitCode":0,"startedAt":"2026-10-08T14:00:11.2603548+00:00","finishedAt":"2026-10-08T14:00:11.2611587+00:00","cursor":1396,"output":"To get the token for your personal account:\n *  Automating u
-  unknown commands run: {"id":"3f90dd050533","command":"nonsense-command","commandLine":"DiscordChatExporter.Cli nonsense-command","state":"failed","exitCode":1,"startedAt":"2026-10-08T14:00:10.5656221+00:00","finishedAt":"2026-10-08T14:00:10.5797830+00:00","cursor":999,"output":"Unrecognized parameter(s):\n<nonsense-comma
+  toasts: ["Preset applied: Export everything (JSON). Review the fields and press Run.","Preset applied: Only one person's messages. Review the fields and press Run.","The saved token was removed from this browser.","'guide' finished successfully.","'guide' finished successfully.","'nonsense-command' failed with exit code 1.","'guide' finished successfully."]
+  page run: {"id":"139060052b77","command":"guide","commandLine":"DiscordChatExporter.Cli guide","state":"succeeded","exitCode":0,"startedAt":"2026-10-08T16:22:01.5633742+00:00","finishedAt":"2026-10-08T16:22:01.5640145+00:00","cursor":1396,"output":"To get the token for your personal account:\n *  Automating u
+  unknown commands run: {"id":"ad180ae72288","command":"nonsense-command","commandLine":"DiscordChatExporter.Cli nonsense-command","state":"failed","exitCode":1,"startedAt":"2026-10-08T16:22:01.3184898+00:00","finishedAt":"2026-10-08T16:22:01.3319545+00:00","cursor":999,"output":"Unrecognized parameter(s):\n<nonsense-comma
   log: "$ DiscordChatExporter.Cli guide\n\nTo get the token for your personal account:\n *  Automating user accounts is technically against TOS — USE AT YOUR OWN RISK!\n 1. Open Discord in your web browser and login\n 2. Open any server or direct message channel\n 3. Press Ctrl+Shift+I to show developer tools\n 4."
   server runs: ["guide:succeeded","guide:succeeded","nonsense-command:failed","guide:succeeded","guide:succeeded"]
