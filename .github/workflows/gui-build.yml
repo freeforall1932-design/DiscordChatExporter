@@ -187,13 +187,13 @@ jobs:
           path: ./publish/
           if-no-files-found: error
 
-  # Applies the repository's C# formatting rules and exposes the result as a patch
+  # Applies the repository's C# formatting rules straight to the branch
   format:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
     permissions:
-      contents: read
+      contents: write
 
     steps:
       - name: Checkout
@@ -209,15 +209,16 @@ jobs:
           -p:CSharpier_Check=false
           --configuration Release
 
-      - name: Create patch
+      - name: Commit formatting changes
         run: |
-          git diff > csharpier.patch
-          cat csharpier.patch
-          wc -l csharpier.patch
+          if git diff --quiet; then
+            echo "Everything is already formatted."
+            exit 0
+          fi
 
-      - name: Upload patch
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: gui-format-patch
-          path: csharpier.patch
-          if-no-files-found: error
+          git diff --stat
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Apply formatting"
+          git push origin "HEAD:${{ github.ref_name }}"

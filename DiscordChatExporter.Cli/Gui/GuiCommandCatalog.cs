@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
@@ -151,7 +152,14 @@ internal static class GuiCommandCatalog
             ? command
             : null;
 
-    private static CommandDescriptor? TryGetCommandDescriptor(Type type)
+    [UnconditionalSuppressMessage(
+        "Trimming",
+        "IL2026",
+        Justification = "All command types are rooted by the source-generated command registration."
+    )]
+    private static CommandDescriptor? TryGetCommandDescriptor(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] Type type
+    )
     {
         if (type.IsAbstract || !typeof(ICommand).IsAssignableFrom(type))
             return null;
@@ -169,6 +177,18 @@ internal static class GuiCommandCatalog
         return descriptorProperty?.GetValue(null) as CommandDescriptor;
     }
 
+    // The command types are rooted by the source-generated command registration, so they are
+    // always present, even in trimmed builds
+    [UnconditionalSuppressMessage(
+        "Trimming",
+        "IL2026",
+        Justification = "Command types are rooted by the source-generated command registration."
+    )]
+    [UnconditionalSuppressMessage(
+        "Trimming",
+        "IL2072",
+        Justification = "Command types are rooted by the source-generated command registration."
+    )]
     private static IReadOnlyList<GuiCommandDto> BuildCommands()
     {
         var commands = new List<GuiCommandDto>();
@@ -399,7 +419,10 @@ internal static class GuiCommandCatalog
         return null;
     }
 
-    private static object? TryCreateInstance(Type type)
+    private static object? TryCreateInstance(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
+            Type type
+    )
     {
         try
         {

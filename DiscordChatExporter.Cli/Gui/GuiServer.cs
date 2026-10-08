@@ -229,10 +229,16 @@ internal sealed class GuiServer : IDisposable
             if (string.Equals(segments[2], "current", StringComparison.OrdinalIgnoreCase))
             {
                 var current = _runManager.Current;
+                var currentSnapshot = current?.Snapshot(0);
+
                 await WriteJsonAsync(
                     response,
                     (int)HttpStatusCode.OK,
-                    new GuiCurrentRunDto(current?.Snapshot(0) with { Output = string.Empty })
+                    new GuiCurrentRunDto(
+                        currentSnapshot is not null
+                            ? currentSnapshot with { Output = string.Empty }
+                            : null
+                    )
                 );
                 return;
             }
