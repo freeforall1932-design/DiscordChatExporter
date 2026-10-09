@@ -171,8 +171,11 @@ public static partial class Program
                 export.IsVisible && export.IsEnabled,
                 "the original amber floating export action is retained"
             );
-            Check(export.Background is ISolidColorBrush brush && brush.Color == Color.Parse("#F9A825"),
-                "native preview applies the actual desktop amber palette, not the placeholder theme");
+            Check(
+                export.Background is ISolidColorBrush brush
+                    && brush.Color == Color.Parse("#F9A825"),
+                "native preview applies the actual desktop amber palette, not the placeholder theme"
+            );
 
             // Test-only annotation, not a production demo mode. Everything underneath is
             // the actual DashboardView. The token is a known dummy, never a credential.
