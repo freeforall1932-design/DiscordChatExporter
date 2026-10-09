@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Shapes;
+using Ellipse = Avalonia.Controls.Shapes.Ellipse;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.VisualTree;
