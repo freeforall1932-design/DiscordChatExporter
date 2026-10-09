@@ -4,8 +4,10 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using DiscordChatExporter.Commanding;
 using DiscordChatExporter.Core.Discord;
 using DiscordChatExporter.Core.Discord.Data;
 using DiscordChatExporter.Core.Exceptions;
@@ -14,6 +16,7 @@ using DiscordChatExporter.Gui.Framework;
 using DiscordChatExporter.Gui.Localization;
 using DiscordChatExporter.Gui.Models;
 using DiscordChatExporter.Gui.Services;
+using DiscordChatExporter.Gui.Views;
 using Gress;
 using Gress.Completable;
 using PowerKit;
@@ -27,6 +30,9 @@ public partial class DashboardViewModel : ViewModelBase
     private readonly SnackbarManager _snackbarManager;
     private readonly DialogManager _dialogManager;
     private readonly SettingsService _settingsService;
+    private readonly DesktopCommandService _commands;
+    private readonly CommandsWindowService _commandsWindow;
+    private string? _loadedToken;
 
     private readonly IDisposable _eventSubscription;
     private readonly AutoResetProgressMuxer _progressMuxer;
@@ -38,6 +44,8 @@ public partial class DashboardViewModel : ViewModelBase
         DialogManager dialogManager,
         SnackbarManager snackbarManager,
         SettingsService settingsService,
+        DesktopCommandService commands,
+        CommandsWindowService commandsWindow,
         LocalizationManager localizationManager
     )
     {
@@ -45,6 +53,8 @@ public partial class DashboardViewModel : ViewModelBase
         _dialogManager = dialogManager;
         _snackbarManager = snackbarManager;
         _settingsService = settingsService;
+        _commands = commands;
+        _commandsWindow = commandsWindow;
         LocalizationManager = localizationManager;
 
         _progressMuxer = Progress.CreateMuxer().WithAutoReset();
@@ -56,17 +66,37 @@ public partial class DashboardViewModel : ViewModelBase
             ),
             SelectedChannels.WatchProperty(
                 o => o.Count,
-                _ => ExportCommand.NotifyCanExecuteChanged()
+                _ =>
+                {
+                    _commands.SelectedChannelIds = SelectedChannels
+                        .Select(c => c.Channel.Id.ToString())
+                        .ToArray();
+                    ExportCommand.NotifyCanExecuteChanged();
+                }
+            ),
+            commands.WatchProperty(s => s.Token, value => Token = value),
+            commands.WatchProperty(
+                s => s.IsBusy,
+                _ =>
+                {
+                    OnPropertyChanged(nameof(IsWorkAllowed));
+                    PullGuildsCommand.NotifyCanExecuteChanged();
+                    PullChannelsCommand.NotifyCanExecuteChanged();
+                    ExportCommand.NotifyCanExecuteChanged();
+                }
             )
         );
     }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsProgressIndeterminate))]
+    [NotifyPropertyChangedFor(nameof(IsWorkAllowed))]
     [NotifyCanExecuteChangedFor(nameof(PullGuildsCommand))]
     [NotifyCanExecuteChangedFor(nameof(PullChannelsCommand))]
     [NotifyCanExecuteChangedFor(nameof(ExportCommand))]
     public partial bool IsBusy { get; set; }
+
+    public bool IsWorkAllowed => !IsBusy && !_commands.IsBusy;
 
     public LocalizationManager LocalizationManager { get; }
 
@@ -91,141 +121,191 @@ public partial class DashboardViewModel : ViewModelBase
 
     public ObservableCollection<ChannelConnection> SelectedChannels { get; } = [];
 
+    partial void OnTokenChanged(string? value)
+    {
+        _commands.Token = value;
+        // A token edited in either section must not leave channels authenticated with
+        // the previous account available for export.
+        if (_discord is not null && _loadedToken != value?.Trim('"', ' '))
+        {
+            _discord = null;
+            AvailableGuilds = null;
+            SelectedGuild = null;
+            AvailableChannels = null;
+            SelectedChannels.Clear();
+            ExportCommand.NotifyCanExecuteChanged();
+        }
+    }
+
+    partial void OnSelectedGuildChanged(Guild? value) =>
+        _commands.SelectedGuildId = value is { IsDirect: false } ? value.Id.ToString() : null;
+
     public override Task InitializeAsync()
     {
-        if (!string.IsNullOrWhiteSpace(_settingsService.LastToken))
-            Token = _settingsService.LastToken;
-
+        Token = _commands.Token;
         return Task.CompletedTask;
     }
+
+    public CommandsWindow OpenCommands(Window owner) => _commandsWindow.Open(owner);
 
     [RelayCommand]
     private async Task ShowSettingsAsync() =>
         await _dialogManager.ShowDialogAsync(_viewModelManager.GetSettingsViewModel());
 
-    private bool CanPullGuilds() => !IsBusy && !string.IsNullOrWhiteSpace(Token);
+    private bool CanPullGuilds() => IsWorkAllowed && !string.IsNullOrWhiteSpace(Token);
 
     [RelayCommand(CanExecute = nameof(CanPullGuilds))]
     private async Task PullGuildsAsync()
     {
         IsBusy = true;
         var progress = _progressMuxer.CreateInput();
-
+        GuiRun? activity = null;
+        var exitCode = 1;
         try
         {
             var token = Token?.Trim('"', ' ');
             if (string.IsNullOrWhiteSpace(token))
                 return;
-
+            activity = _commands.BeginActivity("desktop-list", "Load servers and channels");
             AvailableGuilds = null;
             SelectedGuild = null;
             AvailableChannels = null;
             SelectedChannels.Clear();
-
+            _loadedToken = token;
             _discord = new DiscordClient(token, _settingsService.RateLimitPreference);
             _settingsService.LastToken = token;
-
-            var guilds = await _discord.GetUserGuildsAsync();
-
+            var guilds = await _discord.GetUserGuildsAsync(activity.Cancellation.Token);
             AvailableGuilds = guilds;
             SelectedGuild = guilds.FirstOrDefault();
-
-            await PullChannelsAsync();
+            activity.Append($"Fetched {guilds.Count} server(s), including direct messages.\n");
+            await PullChannelsCoreAsync(activity.Cancellation.Token);
+            exitCode = 0;
+        }
+        catch (OperationCanceledException)
+        {
+            activity?.Append("Cancelled.\n");
+            _snackbarManager.Notify("Cancelled");
         }
         catch (DiscordChatExporterException ex) when (!ex.IsFatal)
         {
-            _snackbarManager.Notify(ex.Message.TrimEnd('.'));
+            activity?.Append(ex + "\n");
+            _snackbarManager.Notify(_commands.DebugLog.Redact(ex.Message.TrimEnd('.')));
         }
         catch (Exception ex)
         {
-            var dialog = _viewModelManager.GetMessageBoxViewModel(
-                LocalizationManager.ErrorPullingGuildsTitle,
-                ex.ToString()
+            activity?.Append(ex + "\n");
+            _commands.DebugLog.Exception("desktop", ex);
+            await _dialogManager.ShowDialogAsync(
+                _viewModelManager.GetMessageBoxViewModel(
+                    LocalizationManager.ErrorPullingGuildsTitle,
+                    _commands.DebugLog.Redact(ex.ToString())
+                )
             );
-
-            await _dialogManager.ShowDialogAsync(dialog);
         }
         finally
         {
+            if (activity is not null)
+                _commands.CompleteActivity(activity, exitCode);
             progress.ReportCompletion();
             IsBusy = false;
         }
     }
 
-    private bool CanPullChannels() => !IsBusy && _discord is not null && SelectedGuild is not null;
+    private bool CanPullChannels() =>
+        IsWorkAllowed && _discord is not null && SelectedGuild is not null;
 
     [RelayCommand(CanExecute = nameof(CanPullChannels))]
     private async Task PullChannelsAsync()
     {
         IsBusy = true;
         var progress = _progressMuxer.CreateInput();
-
+        GuiRun? activity = null;
+        var exitCode = 1;
         try
         {
             if (_discord is null || SelectedGuild is null)
                 return;
-
-            AvailableChannels = null;
-            SelectedChannels.Clear();
-
-            var channels = new List<Channel>();
-
-            // Regular channels
-            await foreach (var channel in _discord.GetGuildChannelsAsync(SelectedGuild.Id))
-                channels.Add(channel);
-
-            // Threads
-            if (_settingsService.ThreadInclusionMode != ThreadInclusionMode.None)
-            {
-                await foreach (
-                    var thread in _discord.GetGuildThreadsAsync(
-                        SelectedGuild.Id,
-                        _settingsService.ThreadInclusionMode == ThreadInclusionMode.All
-                    )
-                )
-                {
-                    channels.Add(thread);
-                }
-            }
-
-            // Build a hierarchy of channels
-            var channelTree = ChannelConnection.BuildTree(
-                channels
-                    .OrderByDescending(c => c.IsDirect ? c.LastMessageId : null)
-                    .ThenBy(c => c.Position)
-                    .ToArray()
+            activity = _commands.BeginActivity(
+                "desktop-list",
+                $"Load channels in {SelectedGuild.Name}"
             );
-
-            AvailableChannels = channelTree;
-            SelectedChannels.Clear();
+            await PullChannelsCoreAsync(activity.Cancellation.Token);
+            activity.Append($"Fetched channels in {SelectedGuild.Name}.\n");
+            exitCode = 0;
+        }
+        catch (OperationCanceledException)
+        {
+            activity?.Append("Cancelled.\n");
+            _snackbarManager.Notify("Cancelled");
         }
         catch (DiscordChatExporterException ex) when (!ex.IsFatal)
         {
-            _snackbarManager.Notify(ex.Message.TrimEnd('.'));
+            activity?.Append(ex + "\n");
+            _snackbarManager.Notify(_commands.DebugLog.Redact(ex.Message.TrimEnd('.')));
         }
         catch (Exception ex)
         {
-            var dialog = _viewModelManager.GetMessageBoxViewModel(
-                LocalizationManager.ErrorPullingChannelsTitle,
-                ex.ToString()
+            activity?.Append(ex + "\n");
+            _commands.DebugLog.Exception("desktop", ex);
+            await _dialogManager.ShowDialogAsync(
+                _viewModelManager.GetMessageBoxViewModel(
+                    LocalizationManager.ErrorPullingChannelsTitle,
+                    _commands.DebugLog.Redact(ex.ToString())
+                )
             );
-
-            await _dialogManager.ShowDialogAsync(dialog);
         }
         finally
         {
+            if (activity is not null)
+                _commands.CompleteActivity(activity, exitCode);
             progress.ReportCompletion();
             IsBusy = false;
         }
     }
 
+    private async Task PullChannelsCoreAsync(CancellationToken cancellationToken)
+    {
+        if (_discord is null || SelectedGuild is null)
+            return;
+        AvailableChannels = null;
+        SelectedChannels.Clear();
+        var channels = new List<Channel>();
+        await foreach (
+            var channel in _discord.GetGuildChannelsAsync(SelectedGuild.Id, cancellationToken)
+        )
+            channels.Add(channel);
+        if (_settingsService.ThreadInclusionMode != ThreadInclusionMode.None)
+        {
+            await foreach (
+                var thread in _discord.GetGuildThreadsAsync(
+                    SelectedGuild.Id,
+                    _settingsService.ThreadInclusionMode == ThreadInclusionMode.All,
+                    cancellationToken: cancellationToken
+                )
+            )
+                channels.Add(thread);
+        }
+        AvailableChannels = ChannelConnection.BuildTree(
+            channels
+                .OrderByDescending(c => c.IsDirect ? c.LastMessageId : null)
+                .ThenBy(c => c.Position)
+                .ToArray()
+        );
+        SelectedChannels.Clear();
+    }
+
     private bool CanExport() =>
-        !IsBusy && _discord is not null && SelectedGuild is not null && SelectedChannels.Any();
+        IsWorkAllowed
+        && _discord is not null
+        && SelectedGuild is not null
+        && SelectedChannels.Any();
 
     [RelayCommand(CanExecute = nameof(CanExport))]
     private async Task ExportAsync()
     {
         IsBusy = true;
+        GuiRun? activity = null;
+        var exitCode = 1;
 
         try
         {
@@ -240,6 +320,13 @@ public partial class DashboardViewModel : ViewModelBase
             if (await _dialogManager.ShowDialogAsync(dialog) != true)
                 return;
 
+            activity = _commands.BeginActivity(
+                "desktop-export",
+                $"Export {dialog.Channels!.Count} selected channel(s)"
+            );
+            activity.Append(
+                $"Exporting {dialog.Channels.Count} channel(s) as {dialog.SelectedFormat}.\n"
+            );
             var exporter = new ChannelExporter(_discord);
 
             var channelProgressPairs = dialog
@@ -247,12 +334,15 @@ public partial class DashboardViewModel : ViewModelBase
                 .ToArray();
 
             var successfulExportCount = 0;
+            var completedExportCount = 0;
+            var failedExportCount = 0;
 
             await Parallel.ForEachAsync(
                 channelProgressPairs,
                 new ParallelOptions
                 {
                     MaxDegreeOfParallelism = Math.Max(1, _settingsService.ParallelLimit),
+                    CancellationToken = activity.Cancellation.Token,
                 },
                 async (pair, cancellationToken) =>
                 {
@@ -282,20 +372,34 @@ public partial class DashboardViewModel : ViewModelBase
                         await exporter.ExportChannelAsync(request, progress, cancellationToken);
 
                         Interlocked.Increment(ref successfulExportCount);
+                        activity.Append($"Exported {channel.GetHierarchicalName()}.\n");
                     }
                     catch (ChannelEmptyException ex)
                     {
-                        _snackbarManager.Notify(ex.Message.TrimEnd('.'));
+                        activity.Append($"{channel.Name}: {ex.Message}\n");
+                        _snackbarManager.Notify(_commands.DebugLog.Redact(ex.Message.TrimEnd('.')));
                     }
                     catch (DiscordChatExporterException ex) when (!ex.IsFatal)
                     {
-                        _snackbarManager.Notify(ex.Message.TrimEnd('.'));
+                        Interlocked.Increment(ref failedExportCount);
+                        activity.Append($"{channel.Name}: {ex.Message}\n");
+                        _snackbarManager.Notify(_commands.DebugLog.Redact(ex.Message.TrimEnd('.')));
                     }
                     finally
                     {
                         progress.ReportCompletion();
+                        activity.ReportProgress(
+                            Interlocked.Increment(ref completedExportCount)
+                                * 100
+                                / channelProgressPairs.Length
+                        );
                     }
                 }
+            );
+
+            exitCode = failedExportCount == 0 ? 0 : 1;
+            activity.Append(
+                $"Done: {successfulExportCount} exported, {failedExportCount} failed.\n"
             );
 
             // Notify of the overall completion
@@ -309,17 +413,26 @@ public partial class DashboardViewModel : ViewModelBase
                 );
             }
         }
+        catch (OperationCanceledException)
+        {
+            activity?.Append("Cancelled.\n");
+            _snackbarManager.Notify("Cancelled");
+        }
         catch (Exception ex)
         {
+            activity?.Append(ex + "\n");
+            _commands.DebugLog.Exception("desktop", ex);
             var dialog = _viewModelManager.GetMessageBoxViewModel(
                 LocalizationManager.ErrorExportingTitle,
-                ex.ToString()
+                _commands.DebugLog.Redact(ex.ToString())
             );
 
             await _dialogManager.ShowDialogAsync(dialog);
         }
         finally
         {
+            if (activity is not null)
+                _commands.CompleteActivity(activity, exitCode);
             IsBusy = false;
         }
     }

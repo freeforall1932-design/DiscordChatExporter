@@ -1,0 +1,269 @@
+name: gui
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "arena/**"
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  APP: DiscordChatExporter.Cli
+
+jobs:
+  # Builds the CLI (with the embedded web interface) and exercises it end-to-end
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+
+      - name: Build
+        run: >
+          dotnet build DiscordChatExporter.Cli
+          -p:CSharpier_Bypass=true
+          --configuration Release
+
+      - name: Publish (linux-x64, self-contained)
+        run: >
+          dotnet publish DiscordChatExporter.Cli
+          -p:CSharpier_Bypass=true
+          --configuration Release
+          --runtime linux-x64
+          --self-contained
+          --output ./publish
+
+      - name: Show assets
+        run: ls -la ./publish | head -30
+
+      - name: Smoke test the web interface
+        run: |
+          set -o pipefail
+          ./scripts/smoke-test-gui.sh ./publish/DiscordChatExporter.Cli 5155 2>&1 | tee smoke.log
+
+      - name: Test the interface
+        run: |
+          set -o pipefail
+          ./ui-test/run.sh ./publish/DiscordChatExporter.Cli 5156 2>&1 | tee ui-test.log
+
+      # Packages the published build and hands it over as a Git blob, which makes it
+      # possible to try the interface in environments that can only talk to GitHub.
+      - name: Publish a preview package
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tar -czf gui-preview.tar.gz -C ./publish .
+          ls -la gui-preview.tar.gz
+
+          python3 - <<'PY'
+          import base64
+          import json
+
+          data = open("gui-preview.tar.gz", "rb").read()
+          with open("blob.json", "w") as file:
+              json.dump({"content": base64.b64encode(data).decode(), "encoding": "base64"}, file)
+
+          print("payload:", len(data), "bytes")
+          PY
+
+          SHA="$(curl -sf -X POST \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/git/blobs" \
+            --data @blob.json | python3 -c "import json,sys;print(json.load(sys.stdin)['sha'])")"
+
+          echo "::notice title=preview-blob::${SHA}"
+
+      - name: Publish diagnostics
+        if: failure()
+        run: |
+          mkdir -p ci-diagnostics
+          for file in gui.log smoke.log ui-test.log ui-test/server.log info.json run.json raw-run.json error.json index.html; do
+            [ -f "$file" ] && cp "$file" ci-diagnostics/ || true
+          done
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f ci-diagnostics
+          git commit -m "CI diagnostics for failed run" || echo "Nothing new to record."
+
+          # The formatting job may have pushed in the meantime, so rebase before pushing,
+          # otherwise the diagnostics are lost exactly when they are needed
+          git pull --rebase --autostash origin "${{ github.ref_name }}" || true
+          git push origin "HEAD:${{ github.ref_name }}"
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: gui-linux-x64
+          path: ./publish/
+          if-no-files-found: error
+
+  # Builds the real Avalonia desktop app, exercises its native controls without Discord,
+  # and renders screenshots with the headless Skia platform (not a browser mock-up).
+  desktop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+
+      - name: Build native desktop
+        run: dotnet build DiscordChatExporter.Gui -p:CSharpier_Bypass=true --configuration Release
+
+      - name: Test and render the native interface
+        run: |
+          set -o pipefail
+          timeout --signal=TERM --kill-after=15s 150s dotnet run --project DiscordChatExporter.Gui.Tests -p:CSharpier_Bypass=true --configuration Release -- ./desktop-screenshots 2>&1 | tee desktop-test.log
+
+      - name: Share bounded failure diagnostics
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import base64, json, pathlib
+          path = pathlib.Path("desktop-test.log")
+          data = path.read_bytes()[-128000:] if path.exists() else b"No native test log was produced."
+          pathlib.Path("desktop-failure.json").write_text(json.dumps({"content": base64.b64encode(data).decode(), "encoding": "base64"}))
+          PY
+          SHA="$(curl -sf -X POST \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/git/blobs" \
+            --data @desktop-failure.json | python3 -c "import json,sys;print(json.load(sys.stdin)['sha'])")"
+          echo "::notice title=desktop-failure-blob::${SHA}"
+
+      - name: Publish desktop (Windows x64, self-contained)
+        run: >
+          dotnet publish DiscordChatExporter.Gui
+          -p:CSharpier_Bypass=true
+          --configuration Release
+          --runtime win-x64
+          --self-contained
+          --output ./desktop-publish
+
+      - name: Share the actual native screenshots
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cp desktop-test.log desktop-screenshots/
+          tar -czf desktop-preview.tar.gz -C desktop-screenshots .
+          python3 - <<'PY'
+          import base64, json
+          with open("desktop-blob.json", "w") as file:
+              json.dump({"content": base64.b64encode(open("desktop-preview.tar.gz", "rb").read()).decode(), "encoding": "base64"}, file)
+          PY
+          SHA="$(curl -sf -X POST \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/git/blobs" \
+            --data @desktop-blob.json | python3 -c "import json,sys;print(json.load(sys.stdin)['sha'])")"
+          echo "::notice title=desktop-preview-blob::${SHA}"
+
+      - name: Upload desktop package
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: desktop-win-x64
+          path: ./desktop-publish/
+          if-no-files-found: error
+
+      - name: Upload desktop test evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: desktop-test-evidence
+          path: |
+            ./desktop-screenshots/
+            ./desktop-test.log
+          if-no-files-found: warn
+
+  # Applies the repository's C# formatting rules straight to the branch
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+
+      - name: Format
+        run: >
+          dotnet build
+          -t:CSharpierFormat
+          -p:CSharpier_Check=false
+          --configuration Release
+
+      - name: Commit formatting changes
+        run: |
+          if git diff --quiet; then
+            echo "Everything is already formatted."
+            exit 0
+          fi
+
+          git diff --stat
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Apply formatting"
+          git push origin "HEAD:${{ github.ref_name }}"
+
+  # Prebuilt binaries, so that the interface can be used without a .NET SDK
+  pack:
+    strategy:
+      matrix:
+        rid:
+          - win-x64
+          - osx-x64
+          - osx-arm64
+          - linux-arm64
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+
+      - name: Publish
+        run: >
+          dotnet publish DiscordChatExporter.Cli
+          -p:CSharpier_Bypass=true
+          --configuration Release
+          --runtime ${{ matrix.rid }}
+          --self-contained
+          --output ./publish
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: gui-${{ matrix.rid }}
+          path: ./publish/
+          if-no-files-found: error

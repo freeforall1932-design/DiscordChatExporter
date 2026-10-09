@@ -1,5 +1,63 @@
 # Using the GUI
 
+## Native Commands workspace (this branch)
+
+This branch extends the existing Avalonia desktop application; it does not replace the server/channel
+picker or embed a browser. The compact 625×665 main window keeps the original export workflow, server-avatar rail,
+channel tree and amber export action. There is no replacement top-level tab bar.
+The optional **Command tools** window exposes `guilds`, `channels`, `dm`, `export`, `exportguild`, `exportdm`,
+`exportall`, and `guide` through native controls.
+
+> [!NOTE]
+> These additions are currently on this development branch/PR, not in the upstream stable download.
+> Use the `desktop-win-x64` package from the branch's **gui** workflow to try the native build.
+
+### Using Commands
+
+1. Use the regular export screen as before. The terminal icon beside Settings opens **Command tools**
+   in a separate, owned window; reopening it activates the same window. Enter your token on either
+   window. Both use the same in-memory token
+   and the existing desktop *Remember token* setting; there is no browser-local-storage token copy.
+   `DISCORD_TOKEN` is also supported for command execution. Do not share your token or debug unmasked
+   input with other people.
+2. In Command tools, select a command from the flat, icon-labelled list, or choose a **Quick start** preset. Presets only fill the
+   fields: nothing executes until you press **Run**. Selected server/channel IDs from Export prefill
+   compatible fields when a command form is first opened.
+3. Review the fields and the masked command-line preview. **Advanced options** reveals filters and
+   less common controls. Paths have native Browse buttons; you can also type file paths or templates.
+4. Press **Run** (or **Ctrl+Enter / Cmd+Enter**). The workspace opens **Output** automatically and
+   displays captured output and progress. **Cancel** (or **Esc**) requests cancellation of the actual
+   command, rather than merely hiding its result.
+5. Use **Debug** for runtime details, run history and redacted diagnostic events. **Save debug info**
+   exports JSON; **Save output** saves the current log as text.
+
+Closing Command tools preserves its form, output and debug history; it does not cancel an active run.
+Use **Cancel** to cancel. Closing the main application still cancels its active work.
+Native file dialogs and Settings are routed to the appropriate window.
+
+The original Export workflow and Command tools reserve the same execution slot. Starting a normal export
+or loading servers/channels prevents a conflicting command from starting; its activity is also visible
+in Output and can be cancelled there. The existing channel exporter still does the export work.
+
+The **Custom command line** option accepts commands such as `export --help`, without the executable
+name. Execution is in-process using the real CliFx command classes in the shared
+`DiscordChatExporter.Commanding` assembly—no second CLI executable or local HTTP listener is started.
+The CLI's optional browser interface uses the same catalog, presets and runner.
+
+### Development verification
+
+```console
+dotnet run --project DiscordChatExporter.Gui.Tests --configuration Release -- ./desktop-screenshots
+```
+
+This offline harness renders the real Avalonia XAML/styles with the headless Skia platform and tests
+native control bindings, presets, token sharing, execution/cancellation, output, diagnostics and the
+shared runner. Its screenshots are CI rendering evidence, not a claim that a physical Windows desktop
+or authenticated Discord export was tested. Real file dialogs and authenticated exports still need
+manual verification on the target system. The populated export screenshot uses visibly labelled offline
+sample data and local avatar crops from the repository’s existing README image. It is not evidence of
+authenticated account access, and the sample mode is not shipped in the application.
+
 ## Video tutorial
 
 [![Video tutorial](https://i.ytimg.com/vi/jjtu0VQXV7I/hqdefault.jpg)](https://youtube.com/watch?v=jjtu0VQXV7I)

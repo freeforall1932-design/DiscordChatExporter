@@ -1,0 +1,21 @@
+<Window
+  x:Class="DiscordChatExporter.Gui.Views.CommandsWindow"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:dialogHost="clr-namespace:DialogHostAvalonia;assembly=DialogHost.Avalonia"
+  xmlns:components="clr-namespace:DiscordChatExporter.Gui.Views.Components"
+  xmlns:vm="clr-namespace:DiscordChatExporter.Gui.ViewModels.Components"
+  x:DataType="vm:CommandsViewModel"
+  Title="DiscordChatExporter — Command tools"
+  Width="1100"
+  Height="790"
+  MinWidth="900"
+  MinHeight="600"
+  Icon="/favicon.ico"
+  WindowStartupLocation="CenterOwner"
+  RenderOptions.BitmapInterpolationMode="HighQuality"
+>
+  <dialogHost:DialogHost Identifier="Commands" CloseOnClickAway="False">
+    <components:CommandsView />
+  </dialogHost:DialogHost>
+</Window>

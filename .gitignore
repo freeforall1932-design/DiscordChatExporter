@@ -10,3 +10,11 @@ obj/
 
 # Test results
 TestResults/
+
+# Dependencies and logs of the web interface test
+node_modules
+ui-test/server.log
+
+# Native GUI smoke-test rendering output
+desktop-screenshots/
+desktop-test.log

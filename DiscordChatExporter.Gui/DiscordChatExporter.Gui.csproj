@@ -48,5 +48,6 @@
 
   <ItemGroup>
     <ProjectReference Include="../DiscordChatExporter.Core/DiscordChatExporter.Core.csproj" />
+    <ProjectReference Include="../DiscordChatExporter.Commanding/DiscordChatExporter.Commanding.csproj" />
   </ItemGroup>
 </Project>

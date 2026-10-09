@@ -16,6 +16,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../DiscordChatExporter.Core/DiscordChatExporter.Core.csproj" />
+    <!-- Assets of the web interface served by the 'gui' command -->
+    <EmbeddedResource Include="Gui/Assets/**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../DiscordChatExporter.Commanding/DiscordChatExporter.Commanding.csproj" />
   </ItemGroup>
 </Project>
