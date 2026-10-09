@@ -8,6 +8,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using DiscordChatExporter.Commanding;
@@ -91,6 +92,8 @@ public static class Program
         catch (Exception ex)
         {
             Console.Error.WriteLine(ex);
+            var annotation = ex.ToString().Replace("%", "%25").Replace("\r", "%0D").Replace("\n", "%0A");
+            Console.Error.WriteLine($"::error title=Native GUI test::{annotation}");
             return 1;
         }
         finally
@@ -266,7 +269,7 @@ public static class Program
         await Task.Delay(100);
         using var frame = window.CaptureRenderedFrame();
         Check(frame is not null, "the real native window renders a frame");
-        frame!.Save(path);
+        frame!.Save(path, PngBitmapEncoderOptions.Default);
         Check(new FileInfo(path).Length > 1000, "the screenshot contains rendered UI pixels");
     }
 
