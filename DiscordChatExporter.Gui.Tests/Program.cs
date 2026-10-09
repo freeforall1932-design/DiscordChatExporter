@@ -39,7 +39,11 @@ public static partial class Program
     {
         _checks++;
         if (!condition)
+        {
+            Console.Error.WriteLine("FAIL: " + message);
+            Console.Error.WriteLine("::error title=Native assertion::" + message);
             throw new InvalidOperationException("FAIL: " + message);
+        }
         Console.WriteLine("PASS: " + message);
     }
 

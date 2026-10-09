@@ -171,6 +171,7 @@ public static partial class Program
                 export.IsVisible && export.IsEnabled,
                 "the original amber floating export action is retained"
             );
+            Console.WriteLine($"Export action palette: {export.Background}");
             Check(
                 export.Background is ISolidColorBrush brush
                     && brush.Color == Color.Parse("#F9A825"),
