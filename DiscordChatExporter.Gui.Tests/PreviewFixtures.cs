@@ -5,7 +5,6 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
-using Ellipse = Avalonia.Controls.Shapes.Ellipse;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.VisualTree;
@@ -13,6 +12,7 @@ using DiscordChatExporter.Core.Discord;
 using DiscordChatExporter.Core.Discord.Data;
 using DiscordChatExporter.Gui.ViewModels.Components;
 using DiscordChatExporter.Gui.Views.Components;
+using Ellipse = Avalonia.Controls.Shapes.Ellipse;
 
 namespace DiscordChatExporter.Gui.Tests;
 
