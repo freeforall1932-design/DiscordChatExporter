@@ -92,7 +92,10 @@ public static class Program
         catch (Exception ex)
         {
             Console.Error.WriteLine(ex);
-            var annotation = ex.ToString().Replace("%", "%25").Replace("\r", "%0D").Replace("\n", "%0A");
+            var annotation = ex.ToString()
+                .Replace("%", "%25")
+                .Replace("\r", "%0D")
+                .Replace("\n", "%0A");
             Console.Error.WriteLine($"::error title=Native GUI test::{annotation}");
             return 1;
         }

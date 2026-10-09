@@ -59,7 +59,11 @@ public sealed class GuiRunManager(string executableName, string versionText, Gui
 
             var run = new GuiRun(name, commandLine, secrets);
             _runs.Add(run);
-            debugLog.Info("run", $"Started '{run.Id}' with: {commandLine}" + (secrets.Count > 0 ? " (token supplied)" : ""));
+            debugLog.Info(
+                "run",
+                $"Started '{run.Id}' with: {commandLine}"
+                    + (secrets.Count > 0 ? " (token supplied)" : "")
+            );
 
             while (_runs.Count(r => r.IsFinished) > MaxHistoryCount)
             {
