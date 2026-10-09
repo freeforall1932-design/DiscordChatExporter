@@ -174,7 +174,9 @@ public static partial class Program
             Console.WriteLine($"Export action palette: {export.Background}");
             Check(
                 export.Background is ISolidColorBrush brush
-                    && brush.Color.R > 200 && brush.Color.G > 120 && brush.Color.B < 80,
+                    && brush.Color.R > 200
+                    && brush.Color.G > 120
+                    && brush.Color.B < 80,
                 "native preview applies the actual desktop amber palette, not the placeholder theme"
             );
 
