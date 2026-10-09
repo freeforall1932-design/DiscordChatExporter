@@ -19,8 +19,8 @@
     <!--  This theme is used as a stub to pre-load default resources, the actual colors are set through code  -->
     <materialStyles:MaterialTheme
       BaseTheme="Light"
-      PrimaryColor="#343838"
-      SecondaryColor="#F9A825"
+      PrimaryColor="Grey"
+      SecondaryColor="Amber"
     />
     <materialIcons:MaterialIconStyles />
     <dialogHostAvalonia:DialogHostStyles />
