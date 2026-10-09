@@ -4,6 +4,9 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
+    <AvaloniaResource Include="Assets/*.png" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="Avalonia.Headless" />
     <PackageReference Include="CSharpier.MsBuild" PrivateAssets="all" />
   </ItemGroup>

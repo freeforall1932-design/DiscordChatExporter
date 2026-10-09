@@ -15,13 +15,14 @@ public class DialogManager : IDisposable
 {
     private readonly SemaphoreSlim _dialogLock = new(1, 1);
 
-    public async Task<T?> ShowDialogAsync<T>(DialogViewModelBase<T> dialog)
+    public async Task<T?> ShowDialogAsync<T>(DialogViewModelBase<T> dialog, string hostIdentifier = "Main")
     {
         await _dialogLock.WaitAsync();
         try
         {
             await DialogHost.Show(
                 dialog,
+                hostIdentifier,
                 // It's fine to await in a void method here because it's an event handler
                 // ReSharper disable once AsyncVoidLambda
                 async (object _, DialogOpenedEventArgs args) =>

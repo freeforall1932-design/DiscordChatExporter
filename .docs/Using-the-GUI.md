@@ -3,8 +3,9 @@
 ## Native Commands workspace (this branch)
 
 This branch extends the existing Avalonia desktop application; it does not replace the server/channel
-picker or embed a browser. The **Export** tab remains the default and keeps the original workflow.
-The additional **Commands** tab exposes `guilds`, `channels`, `dm`, `export`, `exportguild`, `exportdm`,
+picker or embed a browser. The compact 625×665 main window keeps the original export workflow, server-avatar rail,
+channel tree and amber export action. There is no replacement top-level tab bar.
+The optional **Command tools** window exposes `guilds`, `channels`, `dm`, `export`, `exportguild`, `exportdm`,
 `exportall`, and `guide` through native controls.
 
 > [!NOTE]
@@ -13,11 +14,13 @@ The additional **Commands** tab exposes `guilds`, `channels`, `dm`, `export`, `e
 
 ### Using Commands
 
-1. Enter your token on either **Export** or **Commands**. Both sections use the same in-memory token
+1. Use the regular export screen as before. The terminal icon beside Settings opens **Command tools**
+   in a separate, owned window; reopening it activates the same window. Enter your token on either
+   window. Both use the same in-memory token
    and the existing desktop *Remember token* setting; there is no browser-local-storage token copy.
    `DISCORD_TOKEN` is also supported for command execution. Do not share your token or debug unmasked
    input with other people.
-2. Select a command from the flat list, or choose a **Quick start** preset. Presets only fill the
+2. In Command tools, select a command from the flat, icon-labelled list, or choose a **Quick start** preset. Presets only fill the
    fields: nothing executes until you press **Run**. Selected server/channel IDs from Export prefill
    compatible fields when a command form is first opened.
 3. Review the fields and the masked command-line preview. **Advanced options** reveals filters and
@@ -28,7 +31,11 @@ The additional **Commands** tab exposes `guilds`, `channels`, `dm`, `export`, `e
 5. Use **Debug** for runtime details, run history and redacted diagnostic events. **Save debug info**
    exports JSON; **Save output** saves the current log as text.
 
-The original Export workflow and Commands reserve the same execution slot. Starting a normal export
+Closing Command tools preserves its form, output and debug history; it does not cancel an active run.
+Use **Cancel** to cancel. Closing the main application still cancels its active work.
+Native file dialogs and Settings are routed to the appropriate window.
+
+The original Export workflow and Command tools reserve the same execution slot. Starting a normal export
 or loading servers/channels prevents a conflicting command from starting; its activity is also visible
 in Output and can be cancelled there. The existing channel exporter still does the export work.
 
@@ -47,7 +54,9 @@ This offline harness renders the real Avalonia XAML/styles with the headless Ski
 native control bindings, presets, token sharing, execution/cancellation, output, diagnostics and the
 shared runner. Its screenshots are CI rendering evidence, not a claim that a physical Windows desktop
 or authenticated Discord export was tested. Real file dialogs and authenticated exports still need
-manual verification on the target system.
+manual verification on the target system. The populated export screenshot uses visibly labelled offline
+sample data and local avatar crops from the repository’s existing README image. It is not evidence of
+authenticated account access, and the sample mode is not shipped in the application.
 
 ## Video tutorial
 

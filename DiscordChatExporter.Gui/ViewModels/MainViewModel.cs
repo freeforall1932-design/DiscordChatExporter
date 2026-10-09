@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Threading.Tasks;
-using CommunityToolkit.Mvvm.ComponentModel;
 using DiscordChatExporter.Gui.Framework;
 using DiscordChatExporter.Gui.Localization;
 using DiscordChatExporter.Gui.Services;
@@ -21,11 +20,6 @@ public partial class MainViewModel(
     public string Title { get; } = $"{Program.Name} v{Program.VersionString}";
 
     public DashboardViewModel Dashboard { get; } = viewModelManager.GetDashboardViewModel();
-
-    public CommandsViewModel Commands { get; } = viewModelManager.GetCommandsViewModel();
-
-    [ObservableProperty]
-    public partial int SelectedSectionIndex { get; set; }
 
     private async Task ShowUkraineSupportMessageAsync()
     {

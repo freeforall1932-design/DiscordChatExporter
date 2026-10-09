@@ -312,7 +312,7 @@ public sealed partial class CommandsViewModel : ViewModelBase
 
     [RelayCommand]
     private async Task ShowSettingsAsync() =>
-        await _dialogs.ShowDialogAsync(_viewModels.GetSettingsViewModel());
+        await _dialogs.ShowDialogAsync(_viewModels.GetSettingsViewModel(), "Commands");
 
     protected override void Dispose(bool disposing)
     {

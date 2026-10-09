@@ -31,7 +31,7 @@ namespace DiscordChatExporter.Gui.Tests;
 /// Offline native smoke/interaction harness. It uses the real app styles, XAML and command
 /// classes; no Discord credentials, HTTP requests, or mocked command execution are needed.
 /// </summary>
-public static class Program
+public static partial class Program
 {
     private static int _checks;
 
@@ -85,7 +85,8 @@ public static class Program
                 Path.Combine(output, "proof.txt"),
                 $"{_checks}/{_checks} checks passed.\nReal Avalonia controls rendered by the headless Skia platform.\n"
                     + "The guide command executed in-process through the shared CliFx runner.\n"
-                    + "No authenticated Discord exports or real Windows desktop interactions were tested.\n"
+                    + "desktop-export.png contains clearly labelled offline sample data; no user account was loaded.\n"
+                + "No authenticated Discord exports or real Windows desktop interactions were tested.\n"
             );
             return 0;
         }
@@ -251,6 +252,7 @@ public static class Program
             }
         );
         services.AddSingleton<DesktopCommandService>();
+        services.AddSingleton<CommandsWindowService>();
         services.AddSingleton<DialogManager>();
         services.AddSingleton<SnackbarManager>();
         services.AddSingleton<ViewManager>();
@@ -259,7 +261,7 @@ public static class Program
         services.AddSingleton<LocalizationManager>();
         services.AddTransient<MainViewModel>();
         services.AddTransient<DashboardViewModel>();
-        services.AddTransient<CommandsViewModel>();
+        services.AddSingleton<CommandsViewModel>();
         services.AddTransient<ExportSetupViewModel>();
         services.AddTransient<MessageBoxViewModel>();
         services.AddTransient<SettingsViewModel>();
@@ -281,21 +283,23 @@ public static class Program
         using var services = CreateServices();
         var model = services.GetRequiredService<MainViewModel>();
         var service = services.GetRequiredService<DesktopCommandService>();
-        var commands = model.Commands;
+        var commands = services.GetRequiredService<CommandsViewModel>();
+        var tools = services.GetRequiredService<CommandsWindowService>();
         var window = new MainView { DataContext = model };
         window.Show();
         try
         {
             await Task.Delay(100);
             Check(
-                model.SelectedSectionIndex == 0,
-                "the original Export screen remains the default"
+                window.Width == 625 && window.Height == 665 && window.MinWidth == 600,
+                "the original compact Export window dimensions are restored"
             );
             Check(
                 window.GetVisualDescendants().OfType<DashboardView>().Any(),
                 "the original desktop dashboard still renders"
             );
-            await CaptureAsync(window, Path.Combine(output, "desktop-export.png"));
+            Check(!window.GetVisualDescendants().OfType<TabControl>().Any(), "the main Export screen has no replacement navigation bar");
+            await CaptureAsync(window, Path.Combine(output, "desktop-export-empty.png"));
 
             model.Dashboard.Token = "native-offline-test-token";
             Check(
@@ -307,12 +311,24 @@ public static class Program
                 model.Dashboard.Token == service.Token,
                 "the Commands token is shared back to Export"
             );
+            await CapturePopulatedExportAsync(window, model.Dashboard, output);
             service.SelectedGuildId = "803194314627285022";
             service.SelectedChannelIds = ["803194314627285023", "803194314627285024"];
 
-            model.SelectedSectionIndex = 1;
+            var dashboardView = window.GetVisualDescendants().OfType<DashboardView>().Single();
+            var toolsButton = dashboardView.FindControl<Button>("CommandsToolsButton")!;
+            window.UpdateLayout();
+            var toolsPoint = toolsButton.TranslatePoint(new Point(toolsButton.Bounds.Width / 2, toolsButton.Bounds.Height / 2), window);
+            Check(toolsPoint is not null, "the optional tools icon is reachable in the original toolbar");
+            window.MouseDown(toolsPoint!.Value, MouseButton.Left);
+            window.MouseUp(toolsPoint.Value, MouseButton.Left);
+            await WaitAsync(() => tools.Current is not null, "the tools icon did not open the command window");
+            var toolsWindow = tools.Current!;
             await Task.Delay(100);
-            var view = window.GetVisualDescendants().OfType<CommandsView>().Single();
+            Check(toolsWindow.Owner == window, "command tools open in a separate owned native window");
+            Check(window.Width == 625 && window.Height == 665, "opening advanced tools does not resize the familiar main window");
+            Check(ReferenceEquals(tools.Open(window), toolsWindow), "opening tools twice activates the same window");
+            var view = toolsWindow.GetVisualDescendants().OfType<CommandsView>().Single();
             var list = view.FindControl<ListBox>("CommandListBox")!;
             Check(list.Items.Count == 8, "the actual desktop list contains all eight CLI commands");
             Check(
@@ -354,7 +370,7 @@ public static class Program
                 commands.SelectedPreset?.Id == "export-everything-json",
                 "restoring fields restores the matching preset indication"
             );
-            await CaptureAsync(window, Path.Combine(output, "desktop-commands.png"));
+            await CaptureAsync(toolsWindow, Path.Combine(output, "desktop-commands.png"));
 
             presetBox.SelectedItem = commands.Presets.Single(p => p.Id == "export-one-person");
             Check(
@@ -411,14 +427,14 @@ public static class Program
                 runButton.Command == commands.RunCommand && runButton.IsEnabled,
                 "the actual Run button is wired to the native command"
             );
-            window.UpdateLayout();
+            toolsWindow.UpdateLayout();
             var point = runButton.TranslatePoint(
                 new Point(runButton.Bounds.Width / 2, runButton.Bounds.Height / 2),
-                window
+                toolsWindow
             );
             Check(point is not null, "the Run button has a clickable position");
-            window.MouseDown(point!.Value, MouseButton.Left);
-            window.MouseUp(point.Value, MouseButton.Left);
+            toolsWindow.MouseDown(point!.Value, MouseButton.Left);
+            toolsWindow.MouseUp(point.Value, MouseButton.Left);
             await WaitAsync(
                 () =>
                     service.Manager.All.LastOrDefault()?.Command == "guide"
@@ -442,7 +458,7 @@ public static class Program
                 outputBox.Text?.Contains("personal account", StringComparison.Ordinal) == true,
                 "real command output reaches the actual native text control"
             );
-            await CaptureAsync(window, Path.Combine(output, "desktop-output.png"));
+            await CaptureAsync(toolsWindow, Path.Combine(output, "desktop-output.png"));
 
             commands.SelectedPanelIndex = 2;
             service.DebugLog.Info("test", "Sensitive value: " + service.Token);
@@ -464,7 +480,7 @@ public static class Program
                 service.DebugText.Contains("no HTTP server", StringComparison.Ordinal),
                 "the desktop does not pretend to start a browser server"
             );
-            await CaptureAsync(window, Path.Combine(output, "desktop-debug.png"));
+            await CaptureAsync(toolsWindow, Path.Combine(output, "desktop-debug.png"));
 
             commands.IsCustomCommand = true;
             commands.RawCommandLine = "not-a-command";
@@ -483,9 +499,22 @@ public static class Program
                 commands.RunCommand.CanExecute(null),
                 "the execution slot is released after failure"
             );
+            var retainedOutput = service.OutputText;
+            toolsWindow.Close();
+            Check(window.IsVisible, "closing advanced tools does not close the main export window");
+            var reopened = tools.Open(window);
+            Check(ReferenceEquals(reopened.DataContext, commands), "reopening tools retains the existing command view model");
+            Check(service.OutputText == retainedOutput && commands.RawCommandLine == "not-a-command", "closing tools preserves logs and form state");
+            var inFlight = service.BeginActivity("desktop-test", "Test native activity");
+            reopened.Close();
+            Check(!inFlight.Cancellation.IsCancellationRequested, "closing only the tools window does not cancel an active run");
+            service.Cancel();
+            service.CompleteActivity(inFlight, 1);
+
         }
         finally
         {
+            tools.Current?.Close();
             window.Close();
         }
     }

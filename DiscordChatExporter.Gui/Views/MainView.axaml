@@ -6,28 +6,18 @@
   xmlns:materialStyles="clr-namespace:Material.Styles.Controls;assembly=Material.Styles"
   xmlns:viewModels="clr-namespace:DiscordChatExporter.Gui.ViewModels"
   Title="{Binding Title}"
-  Width="1100"
-  Height="800"
-  MinWidth="900"
-  MinHeight="600"
+  Width="625"
+  Height="665"
+  MinWidth="600"
+  MinHeight="400"
   x:DataType="viewModels:MainViewModel"
   Icon="/favicon.ico"
   RenderOptions.BitmapInterpolationMode="HighQuality"
   WindowStartupLocation="CenterScreen"
 >
-  <dialogHostAvalonia:DialogHost x:Name="DialogHost" CloseOnClickAway="False">
+  <dialogHostAvalonia:DialogHost x:Name="DialogHost" Identifier="Main" CloseOnClickAway="False">
     <materialStyles:SnackbarHost HostName="Root" SnackbarMaxCounts="3">
-      <TabControl
-        x:Name="DesktopSections"
-        SelectedIndex="{Binding SelectedSectionIndex, Mode=TwoWay}"
-      >
-        <TabItem Header="Export">
-          <ContentControl Content="{Binding Dashboard}" />
-        </TabItem>
-        <TabItem Header="Commands">
-          <ContentControl Content="{Binding Commands}" />
-        </TabItem>
-      </TabControl>
+      <ContentControl Content="{Binding Dashboard}" />
     </materialStyles:SnackbarHost>
   </dialogHostAvalonia:DialogHost>
 </Window>

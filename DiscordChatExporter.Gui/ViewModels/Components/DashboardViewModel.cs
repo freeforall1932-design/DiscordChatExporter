@@ -4,6 +4,8 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Controls;
+using DiscordChatExporter.Gui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DiscordChatExporter.Commanding;
@@ -29,6 +31,7 @@ public partial class DashboardViewModel : ViewModelBase
     private readonly DialogManager _dialogManager;
     private readonly SettingsService _settingsService;
     private readonly DesktopCommandService _commands;
+    private readonly CommandsWindowService _commandsWindow;
     private string? _loadedToken;
 
     private readonly IDisposable _eventSubscription;
@@ -42,6 +45,7 @@ public partial class DashboardViewModel : ViewModelBase
         SnackbarManager snackbarManager,
         SettingsService settingsService,
         DesktopCommandService commands,
+        CommandsWindowService commandsWindow,
         LocalizationManager localizationManager
     )
     {
@@ -50,6 +54,7 @@ public partial class DashboardViewModel : ViewModelBase
         _snackbarManager = snackbarManager;
         _settingsService = settingsService;
         _commands = commands;
+        _commandsWindow = commandsWindow;
         LocalizationManager = localizationManager;
 
         _progressMuxer = Progress.CreateMuxer().WithAutoReset();
@@ -140,6 +145,8 @@ public partial class DashboardViewModel : ViewModelBase
         Token = _commands.Token;
         return Task.CompletedTask;
     }
+
+    public CommandsWindow OpenCommands(Window owner) => _commandsWindow.Open(owner);
 
     [RelayCommand]
     private async Task ShowSettingsAsync() =>

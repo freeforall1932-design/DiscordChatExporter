@@ -56,7 +56,7 @@ To learn more about the war and how you can help, [click here](https://tyrrrz.me
   - 📦 [Nix](https://search.nixos.org/packages?show=discordchatexporter-cli): `nix-shell -p discordchatexporter-cli` (community-maintained)
 
 > [!TIP]
-> **This development branch** adds a native **Commands** workspace to the existing desktop GUI, plus an
+> **This development branch** adds optional native **Command tools** to the existing compact desktop GUI, plus an
 > optional browser frontend (`DiscordChatExporter.Cli gui`). Both expose the existing CLI commands, presets,
 > live output and diagnostics through the same shared C# command layer. These additions are **not yet in the
 > upstream stable downloads above**. See [Using the GUI](.docs/Using-the-GUI.md#native-commands-workspace-this-branch)
