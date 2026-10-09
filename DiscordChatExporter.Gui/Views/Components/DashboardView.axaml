@@ -23,6 +23,7 @@
           <!--  Token  -->
           <TextBox
             x:Name="TokenValueTextBox"
+            IsEnabled="{Binding IsWorkAllowed}"
             FontSize="16"
             PasswordChar="*"
             PlaceholderText="{Binding LocalizationManager.TokenPlaceholderText}"
@@ -84,7 +85,7 @@
     <Panel
       Background="{DynamicResource MaterialCardBackgroundBrush}"
       DockPanel.Dock="Bottom"
-      IsEnabled="{Binding !IsBusy}"
+      IsEnabled="{Binding IsWorkAllowed}"
     >
       <Panel.Styles>
         <Style Selector="Panel">

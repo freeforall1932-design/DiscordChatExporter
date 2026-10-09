@@ -7,13 +7,13 @@ using System.Reflection;
 using CliFx;
 using CliFx.Binding;
 
-namespace DiscordChatExporter.Cli.Gui;
+namespace DiscordChatExporter.Commanding;
 
 /// <summary>
 /// Describes and validates all commands exposed by the CLI, so that the graphical interface
 /// can present them as buttons and forms without duplicating any of the actual logic.
 /// </summary>
-internal static class GuiCommandCatalog
+public static class GuiCommandCatalog
 {
     private const string TokenOptionName = "token";
 
@@ -650,6 +650,39 @@ internal static class GuiCommandCatalog
     /// Renders the equivalent command line for the given arguments, masking the token so that
     /// it never ends up in the log or on the screen.
     /// </summary>
+    public static IReadOnlyList<string> GetTokenValues(IReadOnlyList<string> arguments)
+    {
+        var tokens = new List<string>();
+        for (var i = 0; i < arguments.Count; i++)
+        {
+            var value = arguments[i];
+            if (string.Equals(value, "--token", StringComparison.OrdinalIgnoreCase) || value == "-t")
+            {
+                if (i + 1 < arguments.Count)
+                    tokens.Add(arguments[++i]);
+            }
+            else if (value.StartsWith("--token=", StringComparison.OrdinalIgnoreCase))
+                tokens.Add(value[8..]);
+            else if (value.StartsWith("-t=", StringComparison.Ordinal))
+                tokens.Add(value[3..]);
+        }
+        return tokens;
+    }
+
+    public static IReadOnlyList<string> BuildRawArguments(string commandLine, string? token)
+    {
+        var arguments = SplitRawCommandLine(commandLine);
+        if (arguments.Count == 0)
+            throw new ArgumentException("Enter a command, for example: export --help.");
+        if (
+            !string.IsNullOrWhiteSpace(token)
+            && GetTokenValues(arguments).Count == 0
+            && TryGetCommand(arguments[0]) is { RequiresToken: true }
+        )
+            return [arguments[0], "--token", token, .. arguments.Skip(1)];
+        return arguments;
+    }
+
     public static string FormatCommandLine(
         string executableName,
         IReadOnlyList<string> arguments,
@@ -657,31 +690,31 @@ internal static class GuiCommandCatalog
     )
     {
         var buffer = new System.Text.StringBuilder(executableName);
-
         for (var i = 0; i < arguments.Count; i++)
         {
             var argument = arguments[i];
-
             buffer.Append(' ');
-
-            if (
-                string.Equals(argument, token, StringComparison.Ordinal)
-                && i > 0
-                && string.Equals(arguments[i - 1], "--token", StringComparison.Ordinal)
-            )
+            if (string.Equals(argument, "--token", StringComparison.OrdinalIgnoreCase) || argument == "-t")
             {
-                buffer.Append("***");
-                continue;
+                buffer.Append(argument);
+                if (i + 1 < arguments.Count)
+                {
+                    buffer.Append(" ***");
+                    i++;
+                }
             }
-
-            if (argument.Length <= 0 || argument.Any(char.IsWhiteSpace))
+            else if (argument.StartsWith("--token=", StringComparison.OrdinalIgnoreCase))
+                buffer.Append("--token=***");
+            else if (argument.StartsWith("-t=", StringComparison.Ordinal))
+                buffer.Append("-t=***");
+            else if (argument.Length == 0 || argument.Any(char.IsWhiteSpace))
                 buffer.Append('"').Append(argument).Append('"');
             else
                 buffer.Append(argument);
         }
-
-        return buffer.ToString();
+        return GuiRedaction.Redact(buffer.ToString());
     }
+
 }
 
 internal sealed record GuiCommandOverlay(string Title, string Icon, string? Description = null);

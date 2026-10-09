@@ -160,6 +160,8 @@ The same information is available on the command line:
 
 - Exports are written relative to the working directory of the server process, which is shown at the
   bottom of the sidebar.
+- The native desktop app also has a Commands workspace on this branch; both frontends use the
+  same `DiscordChatExporter.Commanding` catalog, presets and in-process command runner.
 - The interface is served from resources embedded in the executable — no internet connection is
   required to load it, and it works the same on Windows, macOS and Linux.
 - The web interface is meant for local use. If you only need to export a few channels on the same

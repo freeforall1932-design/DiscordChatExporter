@@ -1,3 +1,4 @@
+using DiscordChatExporter.Commanding;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -440,28 +441,16 @@ internal sealed class GuiServer : IDisposable
         // Raw command line, as typed by the user
         if (runRequest.RawCommandLine is not null)
         {
-            arguments = GuiCommandCatalog.SplitRawCommandLine(runRequest.RawCommandLine);
-            if (arguments.Count <= 0)
+            try
             {
-                await WriteJsonAsync(
-                    response,
-                    (int)HttpStatusCode.BadRequest,
-                    new GuiErrorDto("Enter a command to run, for example: export --help")
-                );
+                arguments = GuiCommandCatalog.BuildRawArguments(runRequest.RawCommandLine, token);
+            }
+            catch (ArgumentException ex)
+            {
+                await WriteJsonAsync(response, (int)HttpStatusCode.BadRequest, new GuiErrorDto(ex.Message));
                 return;
             }
-
             commandName = arguments[0];
-
-            // Inject the token if the command supports it and it wasn't provided explicitly
-            if (
-                !string.IsNullOrWhiteSpace(token)
-                && !arguments.Contains("--token", StringComparer.OrdinalIgnoreCase)
-                && GuiCommandCatalog.TryGetCommand(commandName) is { RequiresToken: true }
-            )
-            {
-                arguments = [arguments[0], "--token", token, .. arguments.Skip(1)];
-            }
         }
         // Command with values collected in the interface
         else

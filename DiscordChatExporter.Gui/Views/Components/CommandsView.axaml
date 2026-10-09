@@ -1,0 +1,149 @@
+<UserControl
+  x:Class="DiscordChatExporter.Gui.Views.Components.CommandsView"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:vm="clr-namespace:DiscordChatExporter.Gui.ViewModels.Components"
+  xmlns:commanding="clr-namespace:DiscordChatExporter.Commanding;assembly=DiscordChatExporter.Commanding"
+  xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+  x:DataType="vm:CommandsViewModel"
+>
+  <Grid Margin="16" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12">
+    <!-- Shared with the original Export screen and its existing persistence settings. -->
+    <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
+      <TextBox
+        x:Name="CommandTokenTextBox"
+        Grid.Column="0"
+        PasswordChar="*"
+        PlaceholderText="Discord token — shared with the Export screen"
+        Text="{Binding Service.Token, Mode=TwoWay}"
+        IsEnabled="{Binding !Service.IsBusy}"
+      >
+        <TextBox.InnerLeftContent>
+          <materialIcons:MaterialIcon Kind="Key" Width="20" Height="20" Margin="4,0,8,0" />
+        </TextBox.InnerLeftContent>
+      </TextBox>
+      <CheckBox Grid.Column="1" Content="Remember token" VerticalAlignment="Center" IsChecked="{Binding Service.Settings.IsTokenPersisted, Mode=TwoWay}" />
+      <Button Grid.Column="2" Command="{Binding ShowSettingsCommand}" ToolTip.Tip="Desktop settings" Padding="10">
+        <materialIcons:MaterialIcon Kind="Settings" Width="20" Height="20" />
+      </Button>
+    </Grid>
+
+    <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+      <TextBlock Grid.Column="0" Text="Quick start" VerticalAlignment="Center" FontWeight="Medium" />
+      <ComboBox
+        x:Name="PresetComboBox"
+        Grid.Column="1"
+        HorizontalAlignment="Stretch"
+        ItemsSource="{Binding Presets}"
+        SelectedItem="{Binding SelectedPreset, Mode=TwoWay}"
+        PlaceholderText="Choose a preset — fills options without running"
+      >
+        <ComboBox.ItemTemplate>
+          <DataTemplate x:DataType="commanding:GuiPresetDto">
+            <TextBlock Text="{Binding Title}" ToolTip.Tip="{Binding Description}" TextTrimming="CharacterEllipsis" />
+          </DataTemplate>
+        </ComboBox.ItemTemplate>
+      </ComboBox>
+      <TextBlock Grid.Column="2" Text="{Binding Service.TokenStatus}" VerticalAlignment="Center" FontSize="12" Opacity="0.65" />
+    </Grid>
+
+    <Grid Grid.Row="2" ColumnDefinitions="220,*" ColumnSpacing="16">
+      <!-- A flat list: the token guide is directly after the export commands. -->
+      <ListBox
+        x:Name="CommandListBox"
+        Grid.Column="0"
+        ItemsSource="{Binding Commands}"
+        SelectedItem="{Binding SelectedCommand, Mode=TwoWay}"
+        SelectionMode="Single"
+        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+      >
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="commanding:GuiCommandDto">
+            <StackPanel Margin="4,6" Spacing="3" ToolTip.Tip="{Binding Description}">
+              <TextBlock Text="{Binding Title}" FontSize="13" TextTrimming="CharacterEllipsis" />
+              <TextBlock Text="{Binding Name}" FontSize="11" Opacity="0.6" />
+            </StackPanel>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+
+      <Grid Grid.Column="1" RowDefinitions="Auto,*" RowSpacing="8">
+        <StackPanel Grid.Row="0" Spacing="4">
+          <TextBlock Text="{Binding SelectedCommand.Title}" FontSize="19" FontWeight="Medium" />
+          <TextBlock Text="{Binding SelectedCommand.Description}" FontSize="12" Opacity="0.7" TextWrapping="Wrap" MaxLines="2" />
+        </StackPanel>
+        <TabControl x:Name="CommandPanels" Grid.Row="1" SelectedIndex="{Binding SelectedPanelIndex, Mode=TwoWay}">
+          <TabItem Header="Options">
+            <Grid Margin="4,12,4,4" RowDefinitions="Auto,*" RowSpacing="10">
+              <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="20">
+                <CheckBox x:Name="AdvancedOptionsToggle" Content="Advanced options" IsChecked="{Binding ShowAdvanced, Mode=TwoWay}" />
+                <CheckBox Content="Custom command line" IsChecked="{Binding IsCustomCommand, Mode=TwoWay}" />
+              </StackPanel>
+              <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="12">
+                  <StackPanel IsVisible="{Binding IsCustomCommand}" Spacing="8">
+                    <TextBlock Text="Enter a command without the executable name, for example: export --help. Use the shared token field above rather than putting a token here." TextWrapping="Wrap" FontSize="12" />
+                    <TextBox x:Name="RawCommandTextBox" Text="{Binding RawCommandLine, Mode=TwoWay}" AcceptsReturn="True" MinHeight="100" TextWrapping="Wrap" PlaceholderText="export --help" />
+                  </StackPanel>
+                  <StackPanel IsVisible="{Binding !IsCustomCommand}">
+                    <TextBlock IsVisible="{Binding !HasOptions}" Text="This command has no options. Press Run to execute it." TextWrapping="Wrap" Margin="0,12" />
+                    <ItemsControl ItemsSource="{Binding VisibleOptions}" IsEnabled="{Binding !Service.IsBusy}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:CommandOptionViewModel">
+                          <StackPanel Margin="0,0,0,14" Spacing="6" ToolTip.Tip="{Binding Description}">
+                            <CheckBox IsVisible="{Binding IsBoolean}" Content="{Binding Label}" IsChecked="{Binding BooleanValue, Mode=TwoWay}" />
+                            <TextBlock IsVisible="{Binding !IsBoolean}" Text="{Binding Label}" FontSize="12" FontWeight="Medium" />
+                            <ComboBox IsVisible="{Binding IsChoice}" HorizontalAlignment="Stretch" ItemsSource="{Binding Choices}" SelectedItem="{Binding SelectedChoice, Mode=TwoWay}" PlaceholderText="Use command default">
+                              <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="commanding:GuiOptionChoiceDto">
+                                  <TextBlock Text="{Binding Label}" />
+                                </DataTemplate>
+                              </ComboBox.ItemTemplate>
+                            </ComboBox>
+                            <Grid IsVisible="{Binding IsText}" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                              <TextBox Grid.Column="0" Text="{Binding Text, Mode=TwoWay}" PlaceholderText="{Binding Placeholder}" AcceptsReturn="{Binding IsSequence}" MinHeight="36" MaxHeight="96" TextWrapping="Wrap" />
+                              <Button Grid.Column="1" IsVisible="{Binding IsPath}" Content="Browse…" Command="{Binding BrowseCommand}" VerticalAlignment="Center" ToolTip.Tip="Choose a folder (or a ZIP file for a data package). You can also type a file path or output template." />
+                            </Grid>
+                          </StackPanel>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                </StackPanel>
+              </ScrollViewer>
+            </Grid>
+          </TabItem>
+          <TabItem Header="Output">
+            <Grid Margin="4,12,4,4" RowDefinitions="Auto,*" RowSpacing="10">
+              <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12">
+                <Button Content="Save output…" Command="{Binding SaveOutputCommand}" />
+                <TextBlock Text="{Binding Service.StatusText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="250" />
+              </StackPanel>
+              <TextBox x:Name="OutputTextBox" Grid.Row="1" Text="{Binding Service.OutputText, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap" FontFamily="monospace" FontSize="12" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" />
+            </Grid>
+          </TabItem>
+          <TabItem Header="Debug">
+            <Grid Margin="4,12,4,4" RowDefinitions="Auto,*" RowSpacing="10">
+              <Button Grid.Row="0" Content="Save debug info…" Command="{Binding SaveDebugCommand}" HorizontalAlignment="Left" />
+              <TextBox x:Name="DebugTextBox" Grid.Row="1" Text="{Binding Service.DebugText, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" FontFamily="monospace" FontSize="12" ScrollViewer.VerticalScrollBarVisibility="Auto" />
+            </Grid>
+          </TabItem>
+        </TabControl>
+      </Grid>
+    </Grid>
+
+    <Grid Grid.Row="3" RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+      <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="10">
+        <TextBox Text="{Binding CommandPreview, Mode=OneWay}" IsReadOnly="True" FontFamily="monospace" FontSize="11" ToolTip.Tip="Equivalent CLI command. Tokens are masked; the real command classes execute in-process." />
+        <Button Grid.Column="1" Content="Copy" Command="{Binding CopyCommandCommand}" />
+      </Grid>
+      <TextBlock Grid.Row="1" Text="{Binding ValidationMessage}" FontSize="12" TextWrapping="Wrap" MaxLines="2" />
+      <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="12">
+        <Button x:Name="RunButton" Grid.Column="0" Content="Run" Command="{Binding RunCommand}" MinWidth="110" />
+        <Button x:Name="CancelButton" Grid.Column="1" Content="Cancel" Command="{Binding CancelCommand}" MinWidth="90" />
+        <ProgressBar Grid.Column="2" Minimum="0" Maximum="100" Value="{Binding Service.ProgressValue}" IsIndeterminate="{Binding Service.IsProgressIndeterminate}" IsVisible="{Binding Service.IsBusy}" VerticalAlignment="Center" Height="4" />
+        <TextBlock Grid.Column="3" Text="{Binding Service.StatusText}" VerticalAlignment="Center" MaxWidth="240" TextTrimming="CharacterEllipsis" />
+      </Grid>
+    </Grid>
+  </Grid>
+</UserControl>

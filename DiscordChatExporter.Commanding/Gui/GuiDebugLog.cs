@@ -4,12 +4,12 @@ using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace DiscordChatExporter.Cli.Gui;
+namespace DiscordChatExporter.Commanding;
 
 /// <summary>
 /// A single diagnostic event, as shown in the "Debug" tab of the interface.
 /// </summary>
-internal sealed record GuiDebugEventDto(
+public sealed record GuiDebugEventDto(
     string Timestamp,
     string Level,
     string Category,
@@ -20,10 +20,30 @@ internal sealed record GuiDebugEventDto(
 /// Keeps a rolling log of everything the web interface does, so that problems can be
 /// diagnosed without a debugger attached. Secrets are removed before they get here.
 /// </summary>
-internal sealed partial class GuiDebugLog(int capacity = 500)
+public sealed partial class GuiDebugLog(int capacity = 500)
 {
     private readonly object _lock = new();
     private readonly Queue<GuiDebugEventDto> _events = new();
+    private readonly HashSet<string> _secrets = new(StringComparer.Ordinal);
+
+    public void RegisterSecret(string? secret)
+    {
+        if (string.IsNullOrWhiteSpace(secret))
+            return;
+        lock (_lock)
+            _secrets.Add(secret);
+    }
+
+    public string Redact(string text)
+    {
+        var result = GuiRedaction.Redact(text);
+        lock (_lock)
+        {
+            foreach (var secret in _secrets)
+                result = result.Replace(secret, "***", StringComparison.Ordinal);
+        }
+        return result;
+    }
 
     /// <summary>
     /// Whether events should also be printed to the console that hosts the web interface.
@@ -38,7 +58,7 @@ internal sealed partial class GuiDebugLog(int capacity = 500)
             DateTimeOffset.Now.ToString("HH:mm:ss.fff", CultureInfo.InvariantCulture),
             level,
             category,
-            GuiRedaction.Redact(message)
+            Redact(message)
         );
 
         lock (_lock)
@@ -75,7 +95,7 @@ internal sealed partial class GuiDebugLog(int capacity = 500)
 /// Removes secrets (Discord tokens in particular) from diagnostic text, so that the debug
 /// information can be shared without leaking credentials.
 /// </summary>
-internal static partial class GuiRedaction
+public static partial class GuiRedaction
 {
     private const string Placeholder = "***";
 
@@ -98,7 +118,7 @@ internal static partial class GuiRedaction
         return result;
     }
 
-    [GeneratedRegex(@"(--token[\s=]+)\S+", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"((?:--token|-t)[\s=]+)(?:""[^""]*""|'[^']*'|\S+)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex TokenArgumentRegex();
 
     [GeneratedRegex(

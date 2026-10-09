@@ -1,3 +1,4 @@
+using DiscordChatExporter.Commanding;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;

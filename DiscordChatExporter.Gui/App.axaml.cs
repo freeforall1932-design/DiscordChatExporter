@@ -39,6 +39,7 @@ public partial class App : Application, IDisposable
 
         // Services
         services.AddSingleton<SettingsService>();
+        services.AddSingleton<DesktopCommandService>();
         services.AddSingleton<UpdateService>();
 
         // Localization
@@ -47,6 +48,7 @@ public partial class App : Application, IDisposable
         // View models
         services.AddTransient<MainViewModel>();
         services.AddTransient<DashboardViewModel>();
+        services.AddTransient<CommandsViewModel>();
         services.AddTransient<ExportSetupViewModel>();
         services.AddTransient<MessageBoxViewModel>();
         services.AddTransient<SettingsViewModel>();

@@ -1,13 +1,15 @@
 using System;
 using System.Globalization;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DiscordChatExporter.Cli.Gui;
+namespace DiscordChatExporter.Commanding;
 
-internal enum GuiRunState
+public enum GuiRunState
 {
     Running,
     Succeeded,
@@ -18,7 +20,7 @@ internal enum GuiRunState
 /// <summary>
 /// Represents a single invocation of a CLI command, including its state and captured output.
 /// </summary>
-internal sealed partial class GuiRun
+public sealed partial class GuiRun
 {
     private const int MaxOutputLength = 4 * 1024 * 1024;
 
@@ -28,11 +30,13 @@ internal sealed partial class GuiRun
     private volatile bool _isFinished;
     private bool _isTruncated;
     private int _progress = -1;
+    private readonly string[] _secrets;
 
-    public GuiRun(string command, string commandLine)
+    public GuiRun(string command, string commandLine, IReadOnlyList<string>? secrets = null)
     {
         Command = command;
         CommandLine = commandLine;
+        _secrets = secrets?.Where(s => !string.IsNullOrWhiteSpace(s)).ToArray() ?? [];
     }
 
     public string Id { get; } = Guid.NewGuid().ToString("n")[..12];
@@ -53,34 +57,52 @@ internal sealed partial class GuiRun
 
     public bool IsFinished => _isFinished;
 
+    private string Redact(string text)
+    {
+        var result = GuiRedaction.Redact(text);
+        foreach (var secret in _secrets)
+            result = result.Replace(secret, "***", StringComparison.Ordinal);
+        return result;
+    }
+
     public void Append(string text)
     {
-        if (string.IsNullOrEmpty(text) || _isFinished)
+        if (string.IsNullOrEmpty(text))
             return;
-
+        text = Redact(text);
         lock (_lock)
         {
-            // A single write can push the output past the limit, so the marker is added
-            // exactly once, whenever the limit is first exceeded
-            if (_isTruncated || _output.Length >= MaxOutputLength)
-            {
-                if (!_isTruncated)
-                {
-                    _isTruncated = true;
-                    _output.Append(
-                        Environment.NewLine
-                            + $"[output truncated after {MaxOutputLength / 1024 / 1024} MB]"
-                            + Environment.NewLine
-                    );
-                }
-
+            if (_isFinished || _isTruncated)
                 return;
+            var remaining = MaxOutputLength - _output.Length;
+            _output.Append(text.AsSpan(0, Math.Min(text.Length, remaining)));
+            if (text.Length > remaining)
+            {
+                _isTruncated = true;
+                _output.Append(Environment.NewLine + "[output truncated after 4 MB]" + Environment.NewLine);
             }
-
-            _output.Append(text);
-
             if (TryReadProgress(text) is { } progress)
                 _progress = progress;
+        }
+    }
+
+    public void ReportProgress(int percentage)
+    {
+        lock (_lock)
+        {
+            if (!_isFinished)
+                _progress = Math.Clamp(percentage, 0, 100);
+        }
+    }
+
+    public bool TryCancel()
+    {
+        lock (_lock)
+        {
+            if (_isFinished)
+                return false;
+            Cancellation.Cancel();
+            return true;
         }
     }
 
@@ -101,11 +123,6 @@ internal sealed partial class GuiRun
             _isFinished = true;
         }
 
-        try
-        {
-            Cancellation.Dispose();
-        }
-        catch (ObjectDisposedException) { }
     }
 
     public GuiRunDto Snapshot(int cursor)
@@ -123,7 +140,7 @@ internal sealed partial class GuiRun
                 StartedAt.ToString("o", CultureInfo.InvariantCulture),
                 FinishedAt?.ToString("o", CultureInfo.InvariantCulture),
                 _output.Length,
-                _output.ToString(actualCursor, _output.Length - actualCursor),
+                Redact(_output.ToString(actualCursor, _output.Length - actualCursor)),
                 _progress >= 0 ? _progress : null
             );
         }

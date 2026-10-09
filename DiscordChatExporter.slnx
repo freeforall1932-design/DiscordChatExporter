@@ -11,6 +11,8 @@
 
   <Project Path="DiscordChatExporter.Cli.Tests/DiscordChatExporter.Cli.Tests.csproj" />
   <Project Path="DiscordChatExporter.Cli/DiscordChatExporter.Cli.csproj" />
+  <Project Path="DiscordChatExporter.Commanding/DiscordChatExporter.Commanding.csproj" />
   <Project Path="DiscordChatExporter.Core/DiscordChatExporter.Core.csproj" />
   <Project Path="DiscordChatExporter.Gui/DiscordChatExporter.Gui.csproj" />
+  <Project Path="DiscordChatExporter.Gui.Tests/DiscordChatExporter.Gui.Tests.csproj" />
 </Solution>

@@ -1,10 +1,10 @@
 using System.Collections.Generic;
 
-namespace DiscordChatExporter.Cli.Gui;
+namespace DiscordChatExporter.Commanding;
 
 // Requests sent by the browser
 
-internal sealed class GuiRunRequest
+public sealed class GuiRunRequest
 {
     public string? Command { get; set; }
 
@@ -17,7 +17,7 @@ internal sealed class GuiRunRequest
 
 // Responses sent back to the browser
 
-internal sealed record GuiInfoDto(
+public sealed record GuiInfoDto(
     string Name,
     string Version,
     string ExecutableName,
@@ -29,7 +29,7 @@ internal sealed record GuiInfoDto(
     IReadOnlyList<GuiPresetDto> Presets
 );
 
-internal sealed record GuiCommandDto(
+public sealed record GuiCommandDto(
     string Name,
     string Title,
     string? Description,
@@ -42,7 +42,7 @@ internal sealed record GuiCommandDto(
 /// <summary>
 /// A ready-made combination of a command and its options, shown as a quick-start button.
 /// </summary>
-internal sealed record GuiPresetDto(
+public sealed record GuiPresetDto(
     string Id,
     string Title,
     string? Description,
@@ -51,7 +51,7 @@ internal sealed record GuiPresetDto(
     IReadOnlyDictionary<string, string[]> Options
 );
 
-internal sealed record GuiOptionDto(
+public sealed record GuiOptionDto(
     string Name,
     string? ShortName,
     string Label,
@@ -67,9 +67,9 @@ internal sealed record GuiOptionDto(
     bool IsAdvanced
 );
 
-internal sealed record GuiOptionChoiceDto(string Value, string Label);
+public sealed record GuiOptionChoiceDto(string Value, string Label);
 
-internal sealed record GuiRunDto(
+public sealed record GuiRunDto(
     string Id,
     string Command,
     string CommandLine,
@@ -82,9 +82,9 @@ internal sealed record GuiRunDto(
     int? Progress
 );
 
-internal sealed record GuiCurrentRunDto(GuiRunDto? Run);
+public sealed record GuiCurrentRunDto(GuiRunDto? Run);
 
-internal sealed record GuiRunSummaryDto(
+public sealed record GuiRunSummaryDto(
     string Id,
     string Command,
     string State,
@@ -92,7 +92,7 @@ internal sealed record GuiRunSummaryDto(
     string StartedAt
 );
 
-internal sealed record GuiEnvironmentDto(
+public sealed record GuiEnvironmentDto(
     string Name,
     string Version,
     string ExecutableName,
@@ -105,11 +105,11 @@ internal sealed record GuiEnvironmentDto(
     int ProcessId
 );
 
-internal sealed record GuiDebugDto(
+public sealed record GuiDebugDto(
     GuiEnvironmentDto Environment,
     IReadOnlyList<GuiDebugEventDto> Events,
     IReadOnlyList<GuiRunSummaryDto> Runs,
     int RequestCount
 );
 
-internal sealed record GuiErrorDto(string Message, IReadOnlyList<string>? Details = null);
+public sealed record GuiErrorDto(string Message, IReadOnlyList<string>? Details = null);

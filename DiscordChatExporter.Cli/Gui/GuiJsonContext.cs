@@ -1,3 +1,4 @@
+using DiscordChatExporter.Commanding;
 using System.Text.Json.Serialization;
 
 namespace DiscordChatExporter.Cli.Gui;

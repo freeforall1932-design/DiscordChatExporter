@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CliFx.Infrastructure;
 
-namespace DiscordChatExporter.Cli.Gui;
+namespace DiscordChatExporter.Commanding;
 
 /// <summary>
 /// Implementation of <see cref="IConsole" /> that forwards all output produced by a command to
@@ -58,7 +58,7 @@ internal sealed class GuiConsole : IConsole, IDisposable
 
     public ConsoleKeyInfo ReadKey(bool intercept = false) =>
         throw new NotSupportedException(
-            "The command attempted to read interactive input, which is not supported in the web interface."
+            "The command attempted to read interactive input, which is not supported in the graphical interface."
         );
 
     public void ResetColor()

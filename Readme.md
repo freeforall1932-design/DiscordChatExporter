@@ -56,9 +56,11 @@ To learn more about the war and how you can help, [click here](https://tyrrrz.me
   - 📦 [Nix](https://search.nixos.org/packages?show=discordchatexporter-cli): `nix-shell -p discordchatexporter-cli` (community-maintained)
 
 > [!TIP]
-> The command-line interface can also be driven from your browser: run `DiscordChatExporter.Cli gui` to open a web
-> interface that exposes every command as a button, with no options to remember. See
-> [Using the web interface](.docs/Using-the-Web-GUI.md) for details.
+> **This development branch** adds a native **Commands** workspace to the existing desktop GUI, plus an
+> optional browser frontend (`DiscordChatExporter.Cli gui`). Both expose the existing CLI commands, presets,
+> live output and diagnostics through the same shared C# command layer. These additions are **not yet in the
+> upstream stable downloads above**. See [Using the GUI](.docs/Using-the-GUI.md#native-commands-workspace-this-branch)
+> and [Using the web interface](.docs/Using-the-Web-GUI.md).
 
 > [!IMPORTANT]
 > To launch the GUI version of the app on MacOS, you may need to first remove the downloaded file from quarantine.

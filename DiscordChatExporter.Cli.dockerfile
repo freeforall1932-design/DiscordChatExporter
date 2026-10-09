@@ -17,6 +17,7 @@ COPY NuGet.config .
 COPY Directory.Build.props .
 COPY Directory.Packages.props .
 COPY DiscordChatExporter.Core DiscordChatExporter.Core
+COPY DiscordChatExporter.Commanding DiscordChatExporter.Commanding
 COPY DiscordChatExporter.Cli DiscordChatExporter.Cli
 
 # Publish a self-contained assembly so we can use a slimmer runtime image

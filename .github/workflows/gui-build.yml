@@ -109,6 +109,72 @@ jobs:
           path: ./publish/
           if-no-files-found: error
 
+  # Builds the real Avalonia desktop app, exercises its native controls without Discord,
+  # and renders screenshots with the headless Skia platform (not a browser mock-up).
+  desktop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+
+      - name: Build native desktop
+        run: dotnet build DiscordChatExporter.Gui -p:CSharpier_Bypass=true --configuration Release
+
+      - name: Test and render the native interface
+        run: |
+          set -o pipefail
+          dotnet run --project DiscordChatExporter.Gui.Tests -p:CSharpier_Bypass=true --configuration Release -- ./desktop-screenshots 2>&1 | tee desktop-test.log
+
+      - name: Publish desktop (Windows x64, self-contained)
+        run: >
+          dotnet publish DiscordChatExporter.Gui
+          -p:CSharpier_Bypass=true
+          --configuration Release
+          --runtime win-x64
+          --self-contained
+          --output ./desktop-publish
+
+      - name: Share the actual native screenshots
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cp desktop-test.log desktop-screenshots/
+          tar -czf desktop-preview.tar.gz -C desktop-screenshots .
+          python3 - <<'PY'
+          import base64, json
+          with open("desktop-blob.json", "w") as file:
+              json.dump({"content": base64.b64encode(open("desktop-preview.tar.gz", "rb").read()).decode(), "encoding": "base64"}, file)
+          PY
+          SHA="$(curl -sf -X POST \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/git/blobs" \
+            --data @desktop-blob.json | python3 -c "import json,sys;print(json.load(sys.stdin)['sha'])")"
+          echo "::notice title=desktop-preview-blob::${SHA}"
+
+      - name: Upload desktop package
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: desktop-win-x64
+          path: ./desktop-publish/
+          if-no-files-found: error
+
+      - name: Upload desktop test evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: desktop-test-evidence
+          path: |
+            ./desktop-screenshots/
+            ./desktop-test.log
+          if-no-files-found: warn
+
   # Applies the repository's C# formatting rules straight to the branch
   format:
     runs-on: ubuntu-latest
@@ -126,7 +192,7 @@ jobs:
 
       - name: Format
         run: >
-          dotnet build DiscordChatExporter.Cli
+          dotnet build
           -t:CSharpierFormat
           -p:CSharpier_Check=false
           --configuration Release
