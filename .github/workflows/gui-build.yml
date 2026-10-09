@@ -129,7 +129,7 @@ jobs:
       - name: Test and render the native interface
         run: |
           set -o pipefail
-          dotnet run --project DiscordChatExporter.Gui.Tests -p:CSharpier_Bypass=true --configuration Release -- ./desktop-screenshots 2>&1 | tee desktop-test.log
+          timeout --signal=TERM --kill-after=15s 150s dotnet run --project DiscordChatExporter.Gui.Tests -p:CSharpier_Bypass=true --configuration Release -- ./desktop-screenshots 2>&1 | tee desktop-test.log
 
       - name: Publish desktop (Windows x64, self-contained)
         run: >

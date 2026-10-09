@@ -41,6 +41,7 @@ public static partial class Program
         if (!condition)
             throw new InvalidOperationException("FAIL: " + message);
         Console.WriteLine("PASS: " + message);
+        Console.WriteLine($"::notice title=Native check {_checks}::{message}");
     }
 
     public static AppBuilder BuildAvaloniaApp() =>
@@ -314,6 +315,7 @@ public static partial class Program
                 model.Dashboard.Token == service.Token,
                 "the Commands token is shared back to Export"
             );
+            Console.WriteLine("::notice title=Native stage::Preparing populated sample screenshot");
             await CapturePopulatedExportAsync(window, model.Dashboard, output);
             service.SelectedGuildId = "803194314627285022";
             service.SelectedChannelIds = ["803194314627285023", "803194314627285024"];
