@@ -4,14 +4,14 @@
 + info 'starting the server on port 5155'
 + echo '::notice title=smoke::starting the server on port 5155'
 ::notice title=smoke::starting the server on port 5155
-+ GUI_PID=2644
++ GUI_PID=2672
 + trap 'kill "${GUI_PID}" 2>/dev/null || true' EXIT
-+ ./publish/DiscordChatExporter.Cli gui --port 5155 --host any --no-browser
 + READY=0
++ ./publish/DiscordChatExporter.Cli gui --port 5155 --host any --no-browser
 ++ seq 1 60
 + for _ in $(seq 1 60)
 + curl -sf http://127.0.0.1:5155/api/info -o info.json
-+ kill -0 2644
++ kill -0 2672
 + sleep 0.5
 + for _ in $(seq 1 60)
 + curl -sf http://127.0.0.1:5155/api/info -o info.json
@@ -32,7 +32,7 @@
     "version": "999.9.9",
     "executableName": "DiscordChatExporter.Cli",
     "workingDirectory": "/home/runner/work/DiscordChatExporter/DiscordChatExporter",
-    "startedAt": "2026-10-08T16:21:53.6422196+00:00",
+    "startedAt": "2026-10-09T07:08:58.8307739+00:00",
     "isNetworkExposed": true,
     "hasEnvironmentToken": false,
     "commands": [
@@ -101,17 +101,17 @@ OK
 + curl -sf -X POST http://127.0.0.1:5155/api/runs -H 'Content-Type: application/json' -d '{"command":"guide"}'
 + python3 -m json.tool run.json
 {
-    "id": "1ed918f002b6",
+    "id": "a06fc837cfb7",
     "command": "guide",
     "commandLine": "DiscordChatExporter.Cli guide",
     "state": "running",
-    "startedAt": "2026-10-08T16:21:54.2115408+00:00",
+    "startedAt": "2026-10-09T07:08:59.4007740+00:00",
     "cursor": 0,
     "output": ""
 }
 ++ python3 -c 'import json;print(json.load(open('\''run.json'\''))['\''id'\''])'
-+ RUN_ID=1ed918f002b6
-+ python3 - 5155 1ed918f002b6
++ RUN_ID=a06fc837cfb7
++ python3 - 5155 a06fc837cfb7
 state: succeeded exit code: 0
 command line: DiscordChatExporter.Cli guide
 output: 'To get the token for your personal account:\n *  Automating user accounts is technically against TOS — USE AT YOUR OWN RISK!\n 1. Open Discord in your web browser and login\n 2. Open any server or direct message channel\n 3. Press Ctrl+Shift+I to show developer tools\n 4. Navigate to the Network tab\n 5. '
@@ -148,13 +148,13 @@ OK
 + sed -n 1,40p
 [
     {
-        "id": "1ed918f002b6",
+        "id": "a06fc837cfb7",
         "command": "guide",
         "commandLine": "DiscordChatExporter.Cli guide",
         "state": "succeeded",
         "exitCode": 0,
-        "startedAt": "2026-10-08T16:21:54.2115408+00:00",
-        "finishedAt": "2026-10-08T16:21:54.2210376+00:00",
+        "startedAt": "2026-10-09T07:08:59.4007740+00:00",
+        "finishedAt": "2026-10-09T07:08:59.4115990+00:00",
         "cursor": 1396,
         "output": ""
     }
@@ -164,8 +164,8 @@ OK
 ::notice title=smoke::running a custom command line
 + curl -sf -X POST http://127.0.0.1:5155/api/runs -H 'Content-Type: application/json' -d '{"rawCommandLine":"guide"}'
 ++ python3 -c 'import json;print(json.load(open('\''raw-run.json'\''))['\''id'\''])'
-+ RAW_ID=32cf5f0f03ec
-+ python3 - 5155 32cf5f0f03ec
++ RAW_ID=b9f69f430110
++ python3 - 5155 b9f69f430110
 state: succeeded output: 'To get the token for your personal account:\n *  Automating user accounts is technically against TOS — USE AT YOUR OWN RISK!\n 1. Open Discord in your web browser and login\n 2. Open any server or direct'
 OK
 + info 'checking the assets are served'
@@ -180,15 +180,15 @@ OK
 + info 'checking the log download endpoint'
 + echo '::notice title=smoke::checking the log download endpoint'
 ::notice title=smoke::checking the log download endpoint
-+ curl -sf http://127.0.0.1:5155/api/runs/1ed918f002b6/log -o run.log
++ curl -sf http://127.0.0.1:5155/api/runs/a06fc837cfb7/log -o run.log
 + grep -q authorization run.log
 + info 'checking the debug endpoint'
 + echo '::notice title=smoke::checking the debug endpoint'
 ::notice title=smoke::checking the debug endpoint
 + curl -sf -X POST http://127.0.0.1:5155/api/runs -H 'Content-Type: application/json' -d '{"command":"guilds","options":{},"token":"smoke-test-token"}'
 ++ python3 -c 'import json; print(json.load(open('\''token-run.json'\''))['\''id'\''])'
-+ TOKEN_RUN_ID=8c5673f8aa3d
-+ python3 - 5155 8c5673f8aa3d
++ TOKEN_RUN_ID=2fb1b4356f06
++ python3 - 5155 2fb1b4356f06
 token run state: failed
 + curl -sf http://127.0.0.1:5155/api/debug -o debug.json
 + python3 -m json.tool debug.json
@@ -202,25 +202,23 @@ token run state: failed
         "serverUrl": "http://localhost:5155/",
         "isNetworkExposed": true,
         "hasEnvironmentToken": false,
-        "startedAt": "2026-10-08T16:21:53.6422196+00:00",
+        "startedAt": "2026-10-09T07:08:58.8307739+00:00",
         "runtime": ".NET 10.0.12",
-        "processId": 2644
+        "processId": 2672
     },
     "events": [
         {
-            "timestamp": "16:21:53.590",
+            "timestamp": "07:08:58.777",
             "level": "info",
             "category": "server",
             "message": "Starting 'DiscordChatExporter.Cli' v999.9.9 on http://+:5155/ from '/home/runner/work/DiscordChatExporter/DiscordChatExporter'."
         },
         {
-            "timestamp": "16:21:53.772",
+            "timestamp": "07:08:58.943",
             "level": "info",
             "category": "server",
 + python3 -
-events: 228 | runs: 3
-OK
-+ info 'SMOKE TEST PASSED'
-+ echo '::notice title=smoke::SMOKE TEST PASSED'
-::notice title=smoke::SMOKE TEST PASSED
-+ kill 2644
+Traceback (most recent call last):
+  File "<stdin>", line 22, in <module>
+AssertionError: the token run was not recorded
++ kill 2672
