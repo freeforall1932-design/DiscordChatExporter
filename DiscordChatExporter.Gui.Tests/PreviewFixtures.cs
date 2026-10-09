@@ -176,7 +176,9 @@ public static partial class Program
             // the actual DashboardView. The token is a known dummy, never a credential.
             // Overlay the annotation in the existing dashboard panel. Do not detach and
             // reparent the DialogHost/tree: that disrupts headless TreeView subscriptions.
-            previewPanel = ((DockPanel)view.Content!).Children.OfType<Panel>().First(panel => panel is not StackPanel);
+            previewPanel = ((DockPanel)view.Content!)
+                .Children.OfType<Panel>()
+                .First(panel => panel is not StackPanel);
             sampleBadge = new Border
             {
                 HorizontalAlignment = HorizontalAlignment.Left,
@@ -185,7 +187,12 @@ public static partial class Program
                 Padding = new Thickness(9, 5),
                 CornerRadius = new CornerRadius(4),
                 Background = new SolidColorBrush(Color.Parse("#FFF4DA")),
-                Child = new TextBlock { Text = "SAMPLE DATA · OFFLINE PREVIEW", FontSize = 10, Foreground = new SolidColorBrush(Color.Parse("#715313")) },
+                Child = new TextBlock
+                {
+                    Text = "SAMPLE DATA · OFFLINE PREVIEW",
+                    FontSize = 10,
+                    Foreground = new SolidColorBrush(Color.Parse("#715313")),
+                },
             };
             previewPanel.Children.Add(sampleBadge);
             await CaptureAsync(window, Path.Combine(output, "desktop-export.png"));
