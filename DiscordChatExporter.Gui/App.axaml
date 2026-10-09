@@ -17,11 +17,7 @@
 
   <Application.Styles>
     <!--  This theme is used as a stub to pre-load default resources, the actual colors are set through code  -->
-    <materialStyles:MaterialTheme
-      BaseTheme="Light"
-      PrimaryColor="Grey"
-      SecondaryColor="Amber"
-    />
+    <materialStyles:MaterialTheme BaseTheme="Light" PrimaryColor="Grey" SecondaryColor="Amber" />
     <materialIcons:MaterialIconStyles />
     <dialogHostAvalonia:DialogHostStyles />
 
