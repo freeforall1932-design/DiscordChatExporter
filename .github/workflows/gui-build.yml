@@ -131,6 +131,24 @@ jobs:
           set -o pipefail
           timeout --signal=TERM --kill-after=15s 150s dotnet run --project DiscordChatExporter.Gui.Tests -p:CSharpier_Bypass=true --configuration Release -- ./desktop-screenshots 2>&1 | tee desktop-test.log
 
+      - name: Share bounded failure diagnostics
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import base64, json, pathlib
+          path = pathlib.Path("desktop-test.log")
+          data = path.read_bytes()[-128000:] if path.exists() else b"No native test log was produced."
+          pathlib.Path("desktop-failure.json").write_text(json.dumps({"content": base64.b64encode(data).decode(), "encoding": "base64"}))
+          PY
+          SHA="$(curl -sf -X POST \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/git/blobs" \
+            --data @desktop-failure.json | python3 -c "import json,sys;print(json.load(sys.stdin)['sha'])")"
+          echo "::notice title=desktop-failure-blob::${SHA}"
+
       - name: Publish desktop (Windows x64, self-contained)
         run: >
           dotnet publish DiscordChatExporter.Gui

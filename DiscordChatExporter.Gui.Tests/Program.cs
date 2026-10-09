@@ -41,7 +41,6 @@ public static partial class Program
         if (!condition)
             throw new InvalidOperationException("FAIL: " + message);
         Console.WriteLine("PASS: " + message);
-        Console.WriteLine($"::notice title=Native check {_checks}::{message}");
     }
 
     public static AppBuilder BuildAvaloniaApp() =>
@@ -68,7 +67,9 @@ public static partial class Program
         Environment.SetEnvironmentVariable("DISCORD_TOKEN", null);
         try
         {
+            Console.WriteLine("::notice title=Native stage::Shared runner checks");
             await TestSharedRunnerAsync();
+            Console.WriteLine("::notice title=Native stage::Starting the native headless session");
             using var session = HeadlessUnitTestSession.StartNew(typeof(Program));
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(90));
             await session.Dispatch(
@@ -287,6 +288,7 @@ public static partial class Program
         var commands = services.GetRequiredService<CommandsViewModel>();
         var tools = services.GetRequiredService<CommandsWindowService>();
         var window = new MainView { DataContext = model };
+        Console.WriteLine("::notice title=Native stage::Showing the compact main window");
         window.Show();
         try
         {
@@ -320,6 +322,7 @@ public static partial class Program
             service.SelectedGuildId = "803194314627285022";
             service.SelectedChannelIds = ["803194314627285023", "803194314627285024"];
 
+            Console.WriteLine("::notice title=Native stage::Opening the optional tools window");
             var dashboardView = window.GetVisualDescendants().OfType<DashboardView>().Single();
             var toolsButton = dashboardView.FindControl<Button>("CommandsToolsButton")!;
             window.UpdateLayout();
@@ -425,6 +428,7 @@ public static partial class Program
 
             commands.SelectedCommand = commands.Commands.Single(c => c.Name == "guide");
             Check(commands.RunCommand.CanExecute(null), "the guide can run without required IDs");
+            Console.WriteLine("::notice title=Native stage::Testing execution and cancellation");
             var reservation = service.BeginActivity("desktop-export", "Native export in progress");
             Check(
                 !commands.RunCommand.CanExecute(null),
