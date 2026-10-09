@@ -86,7 +86,7 @@ public static partial class Program
                 $"{_checks}/{_checks} checks passed.\nReal Avalonia controls rendered by the headless Skia platform.\n"
                     + "The guide command executed in-process through the shared CliFx runner.\n"
                     + "desktop-export.png contains clearly labelled offline sample data; no user account was loaded.\n"
-                + "No authenticated Discord exports or real Windows desktop interactions were tested.\n"
+                    + "No authenticated Discord exports or real Windows desktop interactions were tested.\n"
             );
             return 0;
         }
@@ -298,7 +298,10 @@ public static partial class Program
                 window.GetVisualDescendants().OfType<DashboardView>().Any(),
                 "the original desktop dashboard still renders"
             );
-            Check(!window.GetVisualDescendants().OfType<TabControl>().Any(), "the main Export screen has no replacement navigation bar");
+            Check(
+                !window.GetVisualDescendants().OfType<TabControl>().Any(),
+                "the main Export screen has no replacement navigation bar"
+            );
             await CaptureAsync(window, Path.Combine(output, "desktop-export-empty.png"));
 
             model.Dashboard.Token = "native-offline-test-token";
@@ -318,16 +321,34 @@ public static partial class Program
             var dashboardView = window.GetVisualDescendants().OfType<DashboardView>().Single();
             var toolsButton = dashboardView.FindControl<Button>("CommandsToolsButton")!;
             window.UpdateLayout();
-            var toolsPoint = toolsButton.TranslatePoint(new Point(toolsButton.Bounds.Width / 2, toolsButton.Bounds.Height / 2), window);
-            Check(toolsPoint is not null, "the optional tools icon is reachable in the original toolbar");
+            var toolsPoint = toolsButton.TranslatePoint(
+                new Point(toolsButton.Bounds.Width / 2, toolsButton.Bounds.Height / 2),
+                window
+            );
+            Check(
+                toolsPoint is not null,
+                "the optional tools icon is reachable in the original toolbar"
+            );
             window.MouseDown(toolsPoint!.Value, MouseButton.Left);
             window.MouseUp(toolsPoint.Value, MouseButton.Left);
-            await WaitAsync(() => tools.Current is not null, "the tools icon did not open the command window");
+            await WaitAsync(
+                () => tools.Current is not null,
+                "the tools icon did not open the command window"
+            );
             var toolsWindow = tools.Current!;
             await Task.Delay(100);
-            Check(toolsWindow.Owner == window, "command tools open in a separate owned native window");
-            Check(window.Width == 625 && window.Height == 665, "opening advanced tools does not resize the familiar main window");
-            Check(ReferenceEquals(tools.Open(window), toolsWindow), "opening tools twice activates the same window");
+            Check(
+                toolsWindow.Owner == window,
+                "command tools open in a separate owned native window"
+            );
+            Check(
+                window.Width == 625 && window.Height == 665,
+                "opening advanced tools does not resize the familiar main window"
+            );
+            Check(
+                ReferenceEquals(tools.Open(window), toolsWindow),
+                "opening tools twice activates the same window"
+            );
             var view = toolsWindow.GetVisualDescendants().OfType<CommandsView>().Single();
             var list = view.FindControl<ListBox>("CommandListBox")!;
             Check(list.Items.Count == 8, "the actual desktop list contains all eight CLI commands");
@@ -503,14 +524,22 @@ public static partial class Program
             toolsWindow.Close();
             Check(window.IsVisible, "closing advanced tools does not close the main export window");
             var reopened = tools.Open(window);
-            Check(ReferenceEquals(reopened.DataContext, commands), "reopening tools retains the existing command view model");
-            Check(service.OutputText == retainedOutput && commands.RawCommandLine == "not-a-command", "closing tools preserves logs and form state");
+            Check(
+                ReferenceEquals(reopened.DataContext, commands),
+                "reopening tools retains the existing command view model"
+            );
+            Check(
+                service.OutputText == retainedOutput && commands.RawCommandLine == "not-a-command",
+                "closing tools preserves logs and form state"
+            );
             var inFlight = service.BeginActivity("desktop-test", "Test native activity");
             reopened.Close();
-            Check(!inFlight.Cancellation.IsCancellationRequested, "closing only the tools window does not cancel an active run");
+            Check(
+                !inFlight.Cancellation.IsCancellationRequested,
+                "closing only the tools window does not cancel an active run"
+            );
             service.Cancel();
             service.CompleteActivity(inFlight, 1);
-
         }
         finally
         {

@@ -320,7 +320,8 @@
       </Panel>
 
       <!--  Export button  -->
-      <Button x:Name="ExportButton"
+      <Button
+        x:Name="ExportButton"
         Width="56"
         Height="56"
         Margin="32,24"

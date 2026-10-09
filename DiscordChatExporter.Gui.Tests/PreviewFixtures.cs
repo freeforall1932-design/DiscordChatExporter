@@ -23,19 +23,81 @@ public static partial class Program
     /// data is fetched. The only client is a dummy used to exercise existing UI enablement;
     /// it is never asked to make a request and is removed before interaction tests resume.
     /// </summary>
-    private static async Task CapturePopulatedExportAsync(Window window, DashboardViewModel dashboard, string output)
+    private static async Task CapturePopulatedExportAsync(
+        Window window,
+        DashboardViewModel dashboard,
+        string output
+    )
     {
         const string avatarRoot = "avares://DiscordChatExporter.Gui.Tests/Assets/";
-        var guild = new Guild(new Snowflake(803194314627285022), "Development (sample)", avatarRoot + "sample-avatar-1.png");
-        var general = new Channel(new Snowflake(803194314627285101), ChannelKind.GuildCategory, guild.Id, null, "general", 0, null, null, false, null);
-        var development = new Channel(new Snowflake(803194314627285102), ChannelKind.GuildCategory, guild.Id, null, "development", 1, null, null, false, null);
-        var names = new[] { "architecture", "devops-and-tools", "security", "discord-dev", "web", "gui", "mobile", "game-dev", "databases", "roslyn", "all-you-can-visual-basic" };
-        var channels = names.Select((name, i) => new Channel(
-            new Snowflake(803194314627285200UL + (ulong)i), ChannelKind.GuildTextChat, guild.Id,
-            development, name, i, null, "Offline sample channel", false, new Snowflake(803194314627285999)
-        )).ToArray();
-        var discordField = typeof(DashboardViewModel).GetField("_discord", BindingFlags.Instance | BindingFlags.NonPublic)!;
-        var tokenField = typeof(DashboardViewModel).GetField("_loadedToken", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        var guild = new Guild(
+            new Snowflake(803194314627285022),
+            "Development (sample)",
+            avatarRoot + "sample-avatar-1.png"
+        );
+        var general = new Channel(
+            new Snowflake(803194314627285101),
+            ChannelKind.GuildCategory,
+            guild.Id,
+            null,
+            "general",
+            0,
+            null,
+            null,
+            false,
+            null
+        );
+        var development = new Channel(
+            new Snowflake(803194314627285102),
+            ChannelKind.GuildCategory,
+            guild.Id,
+            null,
+            "development",
+            1,
+            null,
+            null,
+            false,
+            null
+        );
+        var names = new[]
+        {
+            "architecture",
+            "devops-and-tools",
+            "security",
+            "discord-dev",
+            "web",
+            "gui",
+            "mobile",
+            "game-dev",
+            "databases",
+            "roslyn",
+            "all-you-can-visual-basic",
+        };
+        var channels = names
+            .Select(
+                (name, i) =>
+                    new Channel(
+                        new Snowflake(803194314627285200UL + (ulong)i),
+                        ChannelKind.GuildTextChat,
+                        guild.Id,
+                        development,
+                        name,
+                        i,
+                        null,
+                        "Offline sample channel",
+                        false,
+                        new Snowflake(803194314627285999)
+                    )
+            )
+            .ToArray();
+        var discordField = typeof(DashboardViewModel).GetField(
+            "_discord",
+            BindingFlags.Instance | BindingFlags.NonPublic
+        )!;
+        var tokenField = typeof(DashboardViewModel).GetField(
+            "_loadedToken",
+            BindingFlags.Instance | BindingFlags.NonPublic
+        )!;
         var originalContent = (Control)window.Content!;
         try
         {
@@ -44,13 +106,29 @@ public static partial class Program
             dashboard.IsBusy = true;
             dashboard.AvailableGuilds =
             [
-                new Guild(Snowflake.Zero, "Direct messages (sample)", avatarRoot + "sample-avatar-0.png"),
+                new Guild(
+                    Snowflake.Zero,
+                    "Direct messages (sample)",
+                    avatarRoot + "sample-avatar-0.png"
+                ),
                 guild,
-                new Guild(new Snowflake(803194314627285025), "Design (sample)", avatarRoot + "sample-avatar-2.png"),
-                new Guild(new Snowflake(803194314627285026), "Friends (sample)", avatarRoot + "sample-avatar-3.png"),
+                new Guild(
+                    new Snowflake(803194314627285025),
+                    "Design (sample)",
+                    avatarRoot + "sample-avatar-2.png"
+                ),
+                new Guild(
+                    new Snowflake(803194314627285026),
+                    "Friends (sample)",
+                    avatarRoot + "sample-avatar-3.png"
+                ),
             ];
             dashboard.SelectedGuild = guild;
-            dashboard.AvailableChannels = ChannelConnection.BuildTree([general, development, .. channels]);
+            dashboard.AvailableChannels = ChannelConnection.BuildTree([
+                general,
+                development,
+                .. channels,
+            ]);
             window.UpdateLayout();
             await Task.Delay(100);
             var view = window.GetVisualDescendants().OfType<DashboardView>().Single();
@@ -65,32 +143,56 @@ public static partial class Program
                 dashboard.SelectedChannels.Add(new ChannelConnection(channel, []));
             await Task.Delay(100);
             tokenField.SetValue(dashboard, dashboard.Token?.Trim('"', ' '));
-            discordField.SetValue(dashboard, new DiscordClient(dashboard.Token!, RateLimitPreference.RespectAll));
+            discordField.SetValue(
+                dashboard,
+                new DiscordClient(dashboard.Token!, RateLimitPreference.RespectAll)
+            );
             dashboard.IsBusy = false;
             window.UpdateLayout();
-            await WaitAsync(() => view.GetVisualDescendants().OfType<Ellipse>().Count(e => e.Fill is ImageBrush { Source: not null }) >= 4,
-                "the local fixture avatars did not load into the original server rail");
-            Check(dashboard.AvailableGuilds.Count == 4, "the preview illustrates a populated four-server rail");
+            await WaitAsync(
+                () =>
+                    view.GetVisualDescendants()
+                        .OfType<Ellipse>()
+                        .Count(e => e.Fill is ImageBrush { Source: not null }) >= 4,
+                "the local fixture avatars did not load into the original server rail"
+            );
+            Check(
+                dashboard.AvailableGuilds.Count == 4,
+                "the preview illustrates a populated four-server rail"
+            );
             Check(tree.Items.Count == 2, "the original category/channel hierarchy remains visible");
-            Check(dashboard.SelectedChannels.Count == 4, "the original multi-channel selection is illustrated");
+            Check(
+                dashboard.SelectedChannels.Count == 4,
+                "the original multi-channel selection is illustrated"
+            );
             var export = view.FindControl<Button>("ExportButton")!;
-            Check(export.IsVisible && export.IsEnabled, "the original amber floating export action is retained");
+            Check(
+                export.IsVisible && export.IsEnabled,
+                "the original amber floating export action is retained"
+            );
 
             // Test-only annotation, not a production demo mode. Everything underneath is
             // the actual DashboardView. The token is a known dummy, never a credential.
             window.Content = null;
             var annotated = new Grid();
             annotated.Children.Add(originalContent);
-            annotated.Children.Add(new Border
-            {
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Bottom,
-                Margin = new Thickness(10),
-                Padding = new Thickness(9, 5),
-                CornerRadius = new CornerRadius(4),
-                Background = new SolidColorBrush(Color.Parse("#FFF4DA")),
-                Child = new TextBlock { Text = "SAMPLE DATA · OFFLINE PREVIEW", FontSize = 10, Foreground = new SolidColorBrush(Color.Parse("#715313")) },
-            });
+            annotated.Children.Add(
+                new Border
+                {
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    Margin = new Thickness(10),
+                    Padding = new Thickness(9, 5),
+                    CornerRadius = new CornerRadius(4),
+                    Background = new SolidColorBrush(Color.Parse("#FFF4DA")),
+                    Child = new TextBlock
+                    {
+                        Text = "SAMPLE DATA · OFFLINE PREVIEW",
+                        FontSize = 10,
+                        Foreground = new SolidColorBrush(Color.Parse("#715313")),
+                    },
+                }
+            );
             window.Content = annotated;
             await CaptureAsync(window, Path.Combine(output, "desktop-export.png"));
         }

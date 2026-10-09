@@ -15,7 +15,10 @@ public class DialogManager : IDisposable
 {
     private readonly SemaphoreSlim _dialogLock = new(1, 1);
 
-    public async Task<T?> ShowDialogAsync<T>(DialogViewModelBase<T> dialog, string hostIdentifier = "Main")
+    public async Task<T?> ShowDialogAsync<T>(
+        DialogViewModelBase<T> dialog,
+        string hostIdentifier = "Main"
+    )
     {
         await _dialogLock.WaitAsync();
         try

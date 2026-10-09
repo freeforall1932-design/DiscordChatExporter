@@ -11,7 +11,12 @@
 >
   <Grid Margin="16" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12">
     <!-- Shared with the original Export screen and its existing persistence settings. -->
-    <Border Grid.Row="0" Margin="-16,-16,-16,0" Padding="16" Background="{DynamicResource MaterialDarkBackgroundBrush}">
+    <Border
+      Grid.Row="0"
+      Margin="-16,-16,-16,0"
+      Padding="16"
+      Background="{DynamicResource MaterialDarkBackgroundBrush}"
+    >
       <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
         <materialStyles:Card Grid.Column="0">
           <TextBox
@@ -24,12 +29,31 @@
             IsEnabled="{Binding !Service.IsBusy}"
           >
             <TextBox.InnerLeftContent>
-              <materialIcons:MaterialIcon Kind="Key" Width="24" Height="24" Margin="4,0,8,0" Foreground="{DynamicResource PrimaryHueMidBrush}" />
+              <materialIcons:MaterialIcon
+                Kind="Key"
+                Width="24"
+                Height="24"
+                Margin="4,0,8,0"
+                Foreground="{DynamicResource PrimaryHueMidBrush}"
+              />
             </TextBox.InnerLeftContent>
           </TextBox>
         </materialStyles:Card>
-        <CheckBox Grid.Column="1" Content="Remember token" Foreground="{DynamicResource MaterialDarkForegroundBrush}" VerticalAlignment="Center" IsChecked="{Binding Service.Settings.IsTokenPersisted, Mode=TwoWay}" />
-        <Button Grid.Column="2" Command="{Binding ShowSettingsCommand}" ToolTip.Tip="Desktop settings" Padding="8" Foreground="{DynamicResource MaterialDarkForegroundBrush}" Theme="{DynamicResource MaterialFlatButton}">
+        <CheckBox
+          Grid.Column="1"
+          Content="Remember token"
+          Foreground="{DynamicResource MaterialDarkForegroundBrush}"
+          VerticalAlignment="Center"
+          IsChecked="{Binding Service.Settings.IsTokenPersisted, Mode=TwoWay}"
+        />
+        <Button
+          Grid.Column="2"
+          Command="{Binding ShowSettingsCommand}"
+          ToolTip.Tip="Desktop settings"
+          Padding="8"
+          Foreground="{DynamicResource MaterialDarkForegroundBrush}"
+          Theme="{DynamicResource MaterialFlatButton}"
+        >
           <materialIcons:MaterialIcon Kind="Settings" Width="24" Height="24" />
         </Button>
       </Grid>
@@ -81,8 +105,20 @@
       >
         <ListBox.ItemTemplate>
           <DataTemplate x:DataType="commanding:GuiCommandDto">
-            <Grid Margin="2,6" ColumnDefinitions="Auto,*" ColumnSpacing="10" ToolTip.Tip="{Binding Description}">
-              <materialIcons:MaterialIcon Grid.Column="0" Width="22" Height="22" VerticalAlignment="Center" Foreground="{DynamicResource MaterialSecondaryMidBrush}" Kind="{Binding Icon, Converter={x:Static converters:CommandIconConverter.Instance}}" />
+            <Grid
+              Margin="2,6"
+              ColumnDefinitions="Auto,*"
+              ColumnSpacing="10"
+              ToolTip.Tip="{Binding Description}"
+            >
+              <materialIcons:MaterialIcon
+                Grid.Column="0"
+                Width="22"
+                Height="22"
+                VerticalAlignment="Center"
+                Foreground="{DynamicResource MaterialSecondaryMidBrush}"
+                Kind="{Binding Icon, Converter={x:Static converters:CommandIconConverter.Instance}}"
+              />
               <StackPanel Grid.Column="1" Spacing="3">
                 <TextBlock Text="{Binding Title}" FontSize="13" TextTrimming="CharacterEllipsis" />
                 <TextBlock Text="{Binding Name}" FontSize="11" Opacity="0.6" />
@@ -95,8 +131,18 @@
       <Grid Grid.Column="1" RowDefinitions="Auto,*" RowSpacing="8">
         <StackPanel Grid.Row="0" Spacing="4">
           <StackPanel Orientation="Horizontal" Spacing="10">
-            <materialIcons:MaterialIcon Width="25" Height="25" Foreground="{DynamicResource MaterialSecondaryMidBrush}" Kind="{Binding SelectedCommand.Icon, Converter={x:Static converters:CommandIconConverter.Instance}}" />
-            <TextBlock Text="{Binding SelectedCommand.Title}" FontSize="19" FontWeight="Medium" VerticalAlignment="Center" />
+            <materialIcons:MaterialIcon
+              Width="25"
+              Height="25"
+              Foreground="{DynamicResource MaterialSecondaryMidBrush}"
+              Kind="{Binding SelectedCommand.Icon, Converter={x:Static converters:CommandIconConverter.Instance}}"
+            />
+            <TextBlock
+              Text="{Binding SelectedCommand.Title}"
+              FontSize="19"
+              FontWeight="Medium"
+              VerticalAlignment="Center"
+            />
           </StackPanel>
           <TextBlock
             Text="{Binding SelectedCommand.Description}"
