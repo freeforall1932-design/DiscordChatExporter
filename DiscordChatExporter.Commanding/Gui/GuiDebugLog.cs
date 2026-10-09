@@ -118,7 +118,10 @@ public static partial class GuiRedaction
         return result;
     }
 
-    [GeneratedRegex(@"((?:--token|-t)[\s=]+)(?:""[^""]*""|'[^']*'|\S+)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    [GeneratedRegex(
+        @"((?:--token|-t)[\s=]+)(?:""[^""]*""|'[^']*'|\S+)",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant
+    )]
     private static partial Regex TokenArgumentRegex();
 
     [GeneratedRegex(

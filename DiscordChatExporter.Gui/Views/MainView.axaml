@@ -17,7 +17,10 @@
 >
   <dialogHostAvalonia:DialogHost x:Name="DialogHost" CloseOnClickAway="False">
     <materialStyles:SnackbarHost HostName="Root" SnackbarMaxCounts="3">
-      <TabControl x:Name="DesktopSections" SelectedIndex="{Binding SelectedSectionIndex, Mode=TwoWay}">
+      <TabControl
+        x:Name="DesktopSections"
+        SelectedIndex="{Binding SelectedSectionIndex, Mode=TwoWay}"
+      >
         <TabItem Header="Export">
           <ContentControl Content="{Binding Dashboard}" />
         </TabItem>

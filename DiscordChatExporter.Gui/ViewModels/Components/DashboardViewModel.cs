@@ -6,8 +6,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using DiscordChatExporter.Core.Discord;
 using DiscordChatExporter.Commanding;
+using DiscordChatExporter.Core.Discord;
 using DiscordChatExporter.Core.Discord.Data;
 using DiscordChatExporter.Core.Exceptions;
 using DiscordChatExporter.Core.Exporting;
@@ -63,18 +63,23 @@ public partial class DashboardViewModel : ViewModelBase
                 o => o.Count,
                 _ =>
                 {
-                    _commands.SelectedChannelIds = SelectedChannels.Select(c => c.Channel.Id.ToString()).ToArray();
+                    _commands.SelectedChannelIds = SelectedChannels
+                        .Select(c => c.Channel.Id.ToString())
+                        .ToArray();
                     ExportCommand.NotifyCanExecuteChanged();
                 }
             ),
             commands.WatchProperty(s => s.Token, value => Token = value),
-            commands.WatchProperty(s => s.IsBusy, _ =>
-            {
-                OnPropertyChanged(nameof(IsWorkAllowed));
-                PullGuildsCommand.NotifyCanExecuteChanged();
-                PullChannelsCommand.NotifyCanExecuteChanged();
-                ExportCommand.NotifyCanExecuteChanged();
-            })
+            commands.WatchProperty(
+                s => s.IsBusy,
+                _ =>
+                {
+                    OnPropertyChanged(nameof(IsWorkAllowed));
+                    PullGuildsCommand.NotifyCanExecuteChanged();
+                    PullChannelsCommand.NotifyCanExecuteChanged();
+                    ExportCommand.NotifyCanExecuteChanged();
+                }
+            )
         );
     }
 
@@ -183,9 +188,12 @@ public partial class DashboardViewModel : ViewModelBase
         {
             activity?.Append(ex + "\n");
             _commands.DebugLog.Exception("desktop", ex);
-            await _dialogManager.ShowDialogAsync(_viewModelManager.GetMessageBoxViewModel(
-                LocalizationManager.ErrorPullingGuildsTitle, _commands.DebugLog.Redact(ex.ToString())
-            ));
+            await _dialogManager.ShowDialogAsync(
+                _viewModelManager.GetMessageBoxViewModel(
+                    LocalizationManager.ErrorPullingGuildsTitle,
+                    _commands.DebugLog.Redact(ex.ToString())
+                )
+            );
         }
         finally
         {
@@ -196,7 +204,8 @@ public partial class DashboardViewModel : ViewModelBase
         }
     }
 
-    private bool CanPullChannels() => IsWorkAllowed && _discord is not null && SelectedGuild is not null;
+    private bool CanPullChannels() =>
+        IsWorkAllowed && _discord is not null && SelectedGuild is not null;
 
     [RelayCommand(CanExecute = nameof(CanPullChannels))]
     private async Task PullChannelsAsync()
@@ -209,7 +218,10 @@ public partial class DashboardViewModel : ViewModelBase
         {
             if (_discord is null || SelectedGuild is null)
                 return;
-            activity = _commands.BeginActivity("desktop-list", $"Load channels in {SelectedGuild.Name}");
+            activity = _commands.BeginActivity(
+                "desktop-list",
+                $"Load channels in {SelectedGuild.Name}"
+            );
             await PullChannelsCoreAsync(activity.Cancellation.Token);
             activity.Append($"Fetched channels in {SelectedGuild.Name}.\n");
             exitCode = 0;
@@ -228,9 +240,12 @@ public partial class DashboardViewModel : ViewModelBase
         {
             activity?.Append(ex + "\n");
             _commands.DebugLog.Exception("desktop", ex);
-            await _dialogManager.ShowDialogAsync(_viewModelManager.GetMessageBoxViewModel(
-                LocalizationManager.ErrorPullingChannelsTitle, _commands.DebugLog.Redact(ex.ToString())
-            ));
+            await _dialogManager.ShowDialogAsync(
+                _viewModelManager.GetMessageBoxViewModel(
+                    LocalizationManager.ErrorPullingChannelsTitle,
+                    _commands.DebugLog.Redact(ex.ToString())
+                )
+            );
         }
         finally
         {
@@ -248,25 +263,35 @@ public partial class DashboardViewModel : ViewModelBase
         AvailableChannels = null;
         SelectedChannels.Clear();
         var channels = new List<Channel>();
-        await foreach (var channel in _discord.GetGuildChannelsAsync(SelectedGuild.Id, cancellationToken))
+        await foreach (
+            var channel in _discord.GetGuildChannelsAsync(SelectedGuild.Id, cancellationToken)
+        )
             channels.Add(channel);
         if (_settingsService.ThreadInclusionMode != ThreadInclusionMode.None)
         {
-            await foreach (var thread in _discord.GetGuildThreadsAsync(
-                SelectedGuild.Id,
-                _settingsService.ThreadInclusionMode == ThreadInclusionMode.All,
-                cancellationToken: cancellationToken
-            ))
+            await foreach (
+                var thread in _discord.GetGuildThreadsAsync(
+                    SelectedGuild.Id,
+                    _settingsService.ThreadInclusionMode == ThreadInclusionMode.All,
+                    cancellationToken: cancellationToken
+                )
+            )
                 channels.Add(thread);
         }
         AvailableChannels = ChannelConnection.BuildTree(
-            channels.OrderByDescending(c => c.IsDirect ? c.LastMessageId : null).ThenBy(c => c.Position).ToArray()
+            channels
+                .OrderByDescending(c => c.IsDirect ? c.LastMessageId : null)
+                .ThenBy(c => c.Position)
+                .ToArray()
         );
         SelectedChannels.Clear();
     }
 
     private bool CanExport() =>
-        IsWorkAllowed && _discord is not null && SelectedGuild is not null && SelectedChannels.Any();
+        IsWorkAllowed
+        && _discord is not null
+        && SelectedGuild is not null
+        && SelectedChannels.Any();
 
     [RelayCommand(CanExecute = nameof(CanExport))]
     private async Task ExportAsync()
@@ -288,8 +313,13 @@ public partial class DashboardViewModel : ViewModelBase
             if (await _dialogManager.ShowDialogAsync(dialog) != true)
                 return;
 
-            activity = _commands.BeginActivity("desktop-export", $"Export {dialog.Channels!.Count} selected channel(s)");
-            activity.Append($"Exporting {dialog.Channels.Count} channel(s) as {dialog.SelectedFormat}.\n");
+            activity = _commands.BeginActivity(
+                "desktop-export",
+                $"Export {dialog.Channels!.Count} selected channel(s)"
+            );
+            activity.Append(
+                $"Exporting {dialog.Channels.Count} channel(s) as {dialog.SelectedFormat}.\n"
+            );
             var exporter = new ChannelExporter(_discord);
 
             var channelProgressPairs = dialog
@@ -351,13 +381,19 @@ public partial class DashboardViewModel : ViewModelBase
                     finally
                     {
                         progress.ReportCompletion();
-                        activity.ReportProgress(Interlocked.Increment(ref completedExportCount) * 100 / channelProgressPairs.Length);
+                        activity.ReportProgress(
+                            Interlocked.Increment(ref completedExportCount)
+                                * 100
+                                / channelProgressPairs.Length
+                        );
                     }
                 }
             );
 
             exitCode = failedExportCount == 0 ? 0 : 1;
-            activity.Append($"Done: {successfulExportCount} exported, {failedExportCount} failed.\n");
+            activity.Append(
+                $"Done: {successfulExportCount} exported, {failedExportCount} failed.\n"
+            );
 
             // Notify of the overall completion
             if (successfulExportCount > 0)

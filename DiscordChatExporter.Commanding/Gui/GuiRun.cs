@@ -1,6 +1,6 @@
 using System;
-using System.Globalization;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -79,7 +79,9 @@ public sealed partial class GuiRun
             if (text.Length > remaining)
             {
                 _isTruncated = true;
-                _output.Append(Environment.NewLine + "[output truncated after 4 MB]" + Environment.NewLine);
+                _output.Append(
+                    Environment.NewLine + "[output truncated after 4 MB]" + Environment.NewLine
+                );
             }
             if (TryReadProgress(text) is { } progress)
                 _progress = progress;
@@ -122,7 +124,6 @@ public sealed partial class GuiRun
 
             _isFinished = true;
         }
-
     }
 
     public GuiRunDto Snapshot(int cursor)

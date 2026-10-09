@@ -28,7 +28,11 @@ public sealed partial class CommandsViewModel : ViewModelBase
     private GuiPresetDto? _lastPreset;
     private Dictionary<string, string[]>? _presetSnapshot;
 
-    public CommandsViewModel(DesktopCommandService service, DialogManager dialogs, ViewModelManager viewModels)
+    public CommandsViewModel(
+        DesktopCommandService service,
+        DialogManager dialogs,
+        ViewModelManager viewModels
+    )
     {
         Service = service;
         _dialogs = dialogs;
@@ -41,7 +45,8 @@ public sealed partial class CommandsViewModel : ViewModelBase
     public IReadOnlyList<GuiCommandDto> Commands { get; } = GuiCommandCatalog.GetCommands();
     public IReadOnlyList<GuiPresetDto> Presets { get; } = GuiCommandCatalog.GetPresets();
     public ObservableCollection<CommandOptionViewModel> Options { get; } = [];
-    public IEnumerable<CommandOptionViewModel> VisibleOptions => Options.Where(o => ShowAdvanced || !o.IsAdvanced);
+    public IEnumerable<CommandOptionViewModel> VisibleOptions =>
+        Options.Where(o => ShowAdvanced || !o.IsAdvanced);
     public bool HasOptions => Options.Count > 0;
     public bool NeedsToken => SelectedCommand?.RequiresToken == true && !IsCustomCommand;
 
@@ -85,11 +90,13 @@ public sealed partial class CommandsViewModel : ViewModelBase
     }
 
     partial void OnShowAdvancedChanged(bool value) => OnPropertyChanged(nameof(VisibleOptions));
+
     partial void OnIsCustomCommandChanged(bool value)
     {
         OnPropertyChanged(nameof(NeedsToken));
         RefreshForm();
     }
+
     partial void OnRawCommandLineChanged(string value) => RefreshForm();
 
     private void BuildForm(GuiCommandDto command, IReadOnlyDictionary<string, string[]>? values)
@@ -107,7 +114,9 @@ public sealed partial class CommandsViewModel : ViewModelBase
                     initial = [guildId];
                 else if (option.Name == "channel" && Service.SelectedChannelIds.Count > 0)
                     initial = Service.SelectedChannelIds.ToArray();
-                Options.Add(new CommandOptionViewModel(option, initial, _dialogs, OnOptionsChanged));
+                Options.Add(
+                    new CommandOptionViewModel(option, initial, _dialogs, OnOptionsChanged)
+                );
             }
         }
         finally
@@ -120,7 +129,9 @@ public sealed partial class CommandsViewModel : ViewModelBase
     }
 
     private static string[] GetDefaultValues(GuiOptionDto option) =>
-        option.DefaultValue is { } value ? [value] : option.Kind == "bool" ? ["false"] : [];
+        option.DefaultValue is { } value ? [value]
+        : option.Kind == "bool" ? ["false"]
+        : [];
 
     public Dictionary<string, string[]> CollectOptions() =>
         Options.ToDictionary(o => o.Name, o => o.GetValues(), StringComparer.OrdinalIgnoreCase);
@@ -134,7 +145,9 @@ public sealed partial class CommandsViewModel : ViewModelBase
         if (_lastPreset is not null && _presetSnapshot is not null)
         {
             var values = CollectOptions();
-            var matches = _presetSnapshot.All(p => values.TryGetValue(p.Key, out var current) && current.SequenceEqual(p.Value));
+            var matches = _presetSnapshot.All(p =>
+                values.TryGetValue(p.Key, out var current) && current.SequenceEqual(p.Value)
+            );
             _matchingPreset = true;
             SelectedPreset = matches ? _lastPreset : null;
             _matchingPreset = false;
@@ -151,11 +164,16 @@ public sealed partial class CommandsViewModel : ViewModelBase
 
     public void ApplyPreset(GuiPresetDto preset)
     {
-        var command = GuiCommandCatalog.TryGetCommand(preset.Command)
+        var command =
+            GuiCommandCatalog.TryGetCommand(preset.Command)
             ?? throw new ArgumentException("This preset no longer targets an available command.");
         SelectedCommand = command;
         IsCustomCommand = false;
-        var values = command.Options.ToDictionary(o => o.Name, GetDefaultValues, StringComparer.OrdinalIgnoreCase);
+        var values = command.Options.ToDictionary(
+            o => o.Name,
+            GetDefaultValues,
+            StringComparer.OrdinalIgnoreCase
+        );
         if (values.ContainsKey("guild") && Service.SelectedGuildId is { } guildId)
             values["guild"] = [guildId];
         if (values.ContainsKey("channel") && Service.SelectedChannelIds.Count > 0)
@@ -181,8 +199,15 @@ public sealed partial class CommandsViewModel : ViewModelBase
         {
             if (IsCustomCommand)
             {
-                var arguments = GuiCommandCatalog.BuildRawArguments(RawCommandLine, Service.Token?.Trim('"', ' '));
-                CommandPreview = GuiCommandCatalog.FormatCommandLine("DiscordChatExporter.Cli", arguments, Service.Token);
+                var arguments = GuiCommandCatalog.BuildRawArguments(
+                    RawCommandLine,
+                    Service.Token?.Trim('"', ' ')
+                );
+                CommandPreview = GuiCommandCatalog.FormatCommandLine(
+                    "DiscordChatExporter.Cli",
+                    arguments,
+                    Service.Token
+                );
                 ValidationMessage = string.Empty;
                 _formValid = true;
             }
@@ -190,8 +215,17 @@ public sealed partial class CommandsViewModel : ViewModelBase
             {
                 var values = CollectOptions();
                 var token = Service.Token?.Trim('"', ' ');
-                CommandPreview = GuiCommandCatalog.FormatCommandLine("DiscordChatExporter.Cli", GuiCommandCatalog.BuildArguments(command, token, values), token);
-                var errors = GuiCommandCatalog.Validate(command, token, values, Service.HasEnvironmentToken);
+                CommandPreview = GuiCommandCatalog.FormatCommandLine(
+                    "DiscordChatExporter.Cli",
+                    GuiCommandCatalog.BuildArguments(command, token, values),
+                    token
+                );
+                var errors = GuiCommandCatalog.Validate(
+                    command,
+                    token,
+                    values,
+                    Service.HasEnvironmentToken
+                );
                 ValidationMessage = string.Join(" ", errors);
                 _formValid = errors.Count == 0;
             }
@@ -213,7 +247,11 @@ public sealed partial class CommandsViewModel : ViewModelBase
 
     private void OnServiceChanged(object? sender, PropertyChangedEventArgs args)
     {
-        if (args.PropertyName is nameof(DesktopCommandService.Token) or nameof(DesktopCommandService.IsBusy))
+        if (
+            args.PropertyName
+            is nameof(DesktopCommandService.Token)
+                or nameof(DesktopCommandService.IsBusy)
+        )
             RefreshForm();
     }
 
@@ -246,7 +284,8 @@ public sealed partial class CommandsViewModel : ViewModelBase
     private async Task SaveOutputAsync()
     {
         var path = await _dialogs.PromptSaveFilePathAsync(
-            [new FilePickerFileType("Text log") { Patterns = ["*.txt"] }], "DiscordChatExporter-output.txt"
+            [new FilePickerFileType("Text log") { Patterns = ["*.txt"] }],
+            "DiscordChatExporter-output.txt"
         );
         if (!string.IsNullOrWhiteSpace(path))
             await File.WriteAllTextAsync(path, Service.OutputText);
@@ -256,7 +295,8 @@ public sealed partial class CommandsViewModel : ViewModelBase
     private async Task SaveDebugAsync()
     {
         var path = await _dialogs.PromptSaveFilePathAsync(
-            [new FilePickerFileType("Debug JSON") { Patterns = ["*.json"] }], "DiscordChatExporter-debug.json"
+            [new FilePickerFileType("Debug JSON") { Patterns = ["*.json"] }],
+            "DiscordChatExporter-debug.json"
         );
         if (!string.IsNullOrWhiteSpace(path))
             await File.WriteAllTextAsync(path, Service.ExportDebugJson());
@@ -271,7 +311,8 @@ public sealed partial class CommandsViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private async Task ShowSettingsAsync() => await _dialogs.ShowDialogAsync(_viewModels.GetSettingsViewModel());
+    private async Task ShowSettingsAsync() =>
+        await _dialogs.ShowDialogAsync(_viewModels.GetSettingsViewModel());
 
     protected override void Dispose(bool disposing)
     {

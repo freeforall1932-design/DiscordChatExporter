@@ -1,5 +1,5 @@
-using DiscordChatExporter.Commanding;
 using System.Text.Json.Serialization;
+using DiscordChatExporter.Commanding;
 
 namespace DiscordChatExporter.Cli.Gui;
 

@@ -30,7 +30,10 @@ public sealed partial class DesktopCommandService : ObservableObject, IDisposabl
         Manager = new GuiRunManager("DiscordChatExporter.Cli", Program.VersionString, DebugLog);
         Token = settings.LastToken;
         DebugLog.RegisterSecret(Token);
-        DebugLog.Info("desktop", "Native Commands workspace initialized. No HTTP listener is started.");
+        DebugLog.Info(
+            "desktop",
+            "Native Commands workspace initialized. No HTTP listener is started."
+        );
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
         _timer.Tick += OnTick;
         _timer.Start();
@@ -59,7 +62,9 @@ public sealed partial class DesktopCommandService : ObservableObject, IDisposabl
         !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DISCORD_TOKEN"));
 
     public string TokenStatus =>
-        !string.IsNullOrWhiteSpace(Token) ? "Token entered" : HasEnvironmentToken ? "Using DISCORD_TOKEN" : "Token not set";
+        !string.IsNullOrWhiteSpace(Token) ? "Token entered"
+        : HasEnvironmentToken ? "Using DISCORD_TOKEN"
+        : "Token not set";
 
     public string? SelectedGuildId { get; set; }
 
@@ -72,7 +77,8 @@ public sealed partial class DesktopCommandService : ObservableObject, IDisposabl
     public partial string StatusText { get; private set; } = "Idle";
 
     [ObservableProperty]
-    public partial string OutputText { get; private set; } = "Run a command to see its output here.";
+    public partial string OutputText { get; private set; } =
+        "Run a command to see its output here.";
 
     [ObservableProperty]
     public partial string DebugText { get; private set; } = string.Empty;
@@ -93,7 +99,11 @@ public sealed partial class DesktopCommandService : ObservableObject, IDisposabl
         if (errors.Count > 0)
             throw new ArgumentException(string.Join(" ", errors));
         _settings.Save();
-        var run = Manager.Start(command.Name, GuiCommandCatalog.BuildArguments(command, token, values), token);
+        var run = Manager.Start(
+            command.Name,
+            GuiCommandCatalog.BuildArguments(command, token, values),
+            token
+        );
         Refresh();
         return run;
     }
@@ -165,22 +175,43 @@ public sealed partial class DesktopCommandService : ObservableObject, IDisposabl
             $"Version: {Program.VersionString}\nRuntime: {RuntimeInformation.FrameworkDescription}\n"
             + $"Working directory: {Environment.CurrentDirectory}\nInterface: native Avalonia (no HTTP server)\n"
             + $"Started: {_startedAt:O}\nToken: {TokenStatus}\n\n"
-            + string.Join("\n", DebugLog.Snapshot().Select(e => $"[{e.Timestamp}] {e.Level} / {e.Category}: {e.Message}"));
+            + string.Join(
+                "\n",
+                DebugLog
+                    .Snapshot()
+                    .Select(e => $"[{e.Timestamp}] {e.Level} / {e.Category}: {e.Message}")
+            );
     }
 
     public GuiDebugDto SnapshotDebug() =>
         new(
             new GuiEnvironmentDto(
-                Program.Name, Program.VersionString, Program.Name, Environment.CurrentDirectory,
-                "Native desktop (no HTTP listener)", false, HasEnvironmentToken, _startedAt.ToString("O"),
-                RuntimeInformation.FrameworkDescription, Environment.ProcessId
+                Program.Name,
+                Program.VersionString,
+                Program.Name,
+                Environment.CurrentDirectory,
+                "Native desktop (no HTTP listener)",
+                false,
+                HasEnvironmentToken,
+                _startedAt.ToString("O"),
+                RuntimeInformation.FrameworkDescription,
+                Environment.ProcessId
             ),
             DebugLog.Snapshot(),
-            Manager.All.Select(r => new GuiRunSummaryDto(r.Id, r.Command, GuiRun.GetStateName(r.State), r.ExitCode, r.StartedAt.ToString("O"))).ToArray(),
+            Manager
+                .All.Select(r => new GuiRunSummaryDto(
+                    r.Id,
+                    r.Command,
+                    GuiRun.GetStateName(r.State),
+                    r.ExitCode,
+                    r.StartedAt.ToString("O")
+                ))
+                .ToArray(),
             0
         );
 
-    public string ExportDebugJson() => JsonSerializer.Serialize(SnapshotDebug(), DesktopJsonContext.Default.GuiDebugDto);
+    public string ExportDebugJson() =>
+        JsonSerializer.Serialize(SnapshotDebug(), DesktopJsonContext.Default.GuiDebugDto);
 
     public void Dispose()
     {

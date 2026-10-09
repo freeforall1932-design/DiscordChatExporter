@@ -1,4 +1,3 @@
-using DiscordChatExporter.Commanding;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -11,6 +10,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using DiscordChatExporter.Commanding;
 
 namespace DiscordChatExporter.Cli.Gui;
 
@@ -447,7 +447,11 @@ internal sealed class GuiServer : IDisposable
             }
             catch (ArgumentException ex)
             {
-                await WriteJsonAsync(response, (int)HttpStatusCode.BadRequest, new GuiErrorDto(ex.Message));
+                await WriteJsonAsync(
+                    response,
+                    (int)HttpStatusCode.BadRequest,
+                    new GuiErrorDto(ex.Message)
+                );
                 return;
             }
             commandName = arguments[0];

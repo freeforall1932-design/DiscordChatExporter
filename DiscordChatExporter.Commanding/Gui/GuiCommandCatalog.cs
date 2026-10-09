@@ -656,7 +656,10 @@ public static class GuiCommandCatalog
         for (var i = 0; i < arguments.Count; i++)
         {
             var value = arguments[i];
-            if (string.Equals(value, "--token", StringComparison.OrdinalIgnoreCase) || value == "-t")
+            if (
+                string.Equals(value, "--token", StringComparison.OrdinalIgnoreCase)
+                || value == "-t"
+            )
             {
                 if (i + 1 < arguments.Count)
                     tokens.Add(arguments[++i]);
@@ -694,7 +697,10 @@ public static class GuiCommandCatalog
         {
             var argument = arguments[i];
             buffer.Append(' ');
-            if (string.Equals(argument, "--token", StringComparison.OrdinalIgnoreCase) || argument == "-t")
+            if (
+                string.Equals(argument, "--token", StringComparison.OrdinalIgnoreCase)
+                || argument == "-t"
+            )
             {
                 buffer.Append(argument);
                 if (i + 1 < arguments.Count)
@@ -714,7 +720,6 @@ public static class GuiCommandCatalog
         }
         return GuiRedaction.Redact(buffer.ToString());
     }
-
 }
 
 internal sealed record GuiCommandOverlay(string Title, string Icon, string? Description = null);

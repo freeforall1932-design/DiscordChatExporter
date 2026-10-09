@@ -15,7 +15,10 @@ public partial class CommandsView : UserControl<CommandsViewModel>
 
     private void OnKeyDown(object? sender, KeyEventArgs args)
     {
-        if (args.Key == Key.Enter && (args.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Meta)) != 0)
+        if (
+            args.Key == Key.Enter
+            && (args.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Meta)) != 0
+        )
         {
             if (DataContext.RunCommand.CanExecute(null))
                 DataContext.RunCommand.Execute(null);

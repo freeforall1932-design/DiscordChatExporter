@@ -1,4 +1,3 @@
-using DiscordChatExporter.Commanding;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,6 +9,7 @@ using CliFx;
 using CliFx.Binding;
 using CliFx.Infrastructure;
 using DiscordChatExporter.Cli.Gui;
+using DiscordChatExporter.Commanding;
 using PowerKit.Extensions;
 
 namespace DiscordChatExporter.Cli.Commands;

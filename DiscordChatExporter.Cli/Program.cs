@@ -7,7 +7,8 @@ namespace DiscordChatExporter.Cli;
 public static class Program
 {
     public static async Task<int> Main(string[] args) =>
-        await CommandApplication.CreateBuilder()
+        await CommandApplication
+            .CreateBuilder()
             .AddCommandsFromThisAssembly()
             .Build()
             .RunAsync(args);

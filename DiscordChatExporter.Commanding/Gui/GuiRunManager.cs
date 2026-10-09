@@ -76,7 +76,8 @@ public sealed class GuiRunManager(string executableName, string versionText, Gui
     {
         // No UI edit can mutate the arguments of a run after it has started.
         var snapshot = arguments.ToArray();
-        var secrets = GuiCommandCatalog.GetTokenValues(snapshot)
+        var secrets = GuiCommandCatalog
+            .GetTokenValues(snapshot)
             .Append(token)
             .Append(Environment.GetEnvironmentVariable("DISCORD_TOKEN"))
             .Where(s => !string.IsNullOrWhiteSpace(s))
@@ -125,7 +126,8 @@ public sealed class GuiRunManager(string executableName, string versionText, Gui
         try
         {
             using var console = new GuiConsole(run);
-            var application = CommandApplication.CreateBuilder()
+            var application = CommandApplication
+                .CreateBuilder()
                 .SetTitle("DiscordChatExporter")
                 .SetExecutableName(executableName)
                 .SetVersion(versionText)

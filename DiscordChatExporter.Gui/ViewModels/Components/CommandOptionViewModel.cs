@@ -16,13 +16,24 @@ public sealed partial class CommandOptionViewModel : ViewModelBase
     private readonly Action _changed;
     private readonly DialogManager _dialogs;
 
-    public CommandOptionViewModel(GuiOptionDto option, string[] values, DialogManager dialogs, Action changed)
+    public CommandOptionViewModel(
+        GuiOptionDto option,
+        string[] values,
+        DialogManager dialogs,
+        Action changed
+    )
     {
         Option = option;
         _dialogs = dialogs;
         _changed = changed;
-        Text = option.IsSequence ? string.Join("\n", values) : values.FirstOrDefault() ?? string.Empty;
-        BooleanValue = string.Equals(values.FirstOrDefault(), "true", StringComparison.OrdinalIgnoreCase);
+        Text = option.IsSequence
+            ? string.Join("\n", values)
+            : values.FirstOrDefault() ?? string.Empty;
+        BooleanValue = string.Equals(
+            values.FirstOrDefault(),
+            "true",
+            StringComparison.OrdinalIgnoreCase
+        );
         SelectedChoice = Choices.FirstOrDefault(c => c.Value == values.FirstOrDefault());
     }
 
@@ -49,7 +60,9 @@ public sealed partial class CommandOptionViewModel : ViewModelBase
     public partial GuiOptionChoiceDto? SelectedChoice { get; set; }
 
     partial void OnTextChanged(string value) => _changed();
+
     partial void OnBooleanValueChanged(bool value) => _changed();
+
     partial void OnSelectedChoiceChanged(GuiOptionChoiceDto? value) => _changed();
 
     public string[] GetValues()
@@ -59,16 +72,22 @@ public sealed partial class CommandOptionViewModel : ViewModelBase
         if (IsChoice)
             return SelectedChoice is null ? [] : [SelectedChoice.Value];
         if (IsSequence)
-            return Text.Split([' ', ',', '\r', '\n', '\t'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            return Text.Split(
+                [' ', ',', '\r', '\n', '\t'],
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
+            );
         return string.IsNullOrWhiteSpace(Text) ? [] : [Text];
     }
 
     [RelayCommand]
     private async Task BrowseAsync()
     {
-        var path = Name == "data-package"
-            ? await _dialogs.PromptOpenFilePathAsync([new FilePickerFileType("Discord data package") { Patterns = ["*.zip"] }])
-            : await _dialogs.PromptDirectoryPathAsync();
+        var path =
+            Name == "data-package"
+                ? await _dialogs.PromptOpenFilePathAsync([
+                    new FilePickerFileType("Discord data package") { Patterns = ["*.zip"] },
+                ])
+                : await _dialogs.PromptDirectoryPathAsync();
         if (!string.IsNullOrWhiteSpace(path))
             Text = path;
     }
