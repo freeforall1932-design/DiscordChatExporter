@@ -96,6 +96,10 @@ public partial class App : Application, IDisposable
         base.Initialize();
 
         AvaloniaXamlLoader.Load(this);
+        // Apply the real palette after resources are loaded, including headless hosts
+        // that do not invoke the desktop lifetime startup hook. Loaded preferences
+        // and platform theme changes still reinitialize it through the existing hooks.
+        InitializeTheme();
     }
 
     public override void OnFrameworkInitializationCompleted()

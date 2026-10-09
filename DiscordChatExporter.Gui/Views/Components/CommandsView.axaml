@@ -17,7 +17,7 @@
       Padding="16"
       Background="{DynamicResource MaterialDarkBackgroundBrush}"
     >
-      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
         <materialStyles:Card Grid.Column="0">
           <TextBox
             x:Name="CommandTokenTextBox"
@@ -39,15 +39,8 @@
             </TextBox.InnerLeftContent>
           </TextBox>
         </materialStyles:Card>
-        <CheckBox
-          Grid.Column="1"
-          Content="Remember token"
-          Foreground="{DynamicResource MaterialDarkForegroundBrush}"
-          VerticalAlignment="Center"
-          IsChecked="{Binding Service.Settings.IsTokenPersisted, Mode=TwoWay}"
-        />
         <Button
-          Grid.Column="2"
+          Grid.Column="1"
           Command="{Binding ShowSettingsCommand}"
           ToolTip.Tip="Desktop settings"
           Padding="8"
@@ -84,12 +77,12 @@
           </DataTemplate>
         </ComboBox.ItemTemplate>
       </ComboBox>
-      <TextBlock
+      <CheckBox
         Grid.Column="2"
-        Text="{Binding Service.TokenStatus}"
+        Content="Remember token"
         VerticalAlignment="Center"
-        FontSize="12"
-        Opacity="0.65"
+        IsChecked="{Binding Service.Settings.IsTokenPersisted, Mode=TwoWay}"
+        ToolTip.Tip="{Binding Service.TokenStatus}"
       />
     </Grid>
 
