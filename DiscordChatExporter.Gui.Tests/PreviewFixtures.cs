@@ -98,7 +98,8 @@ public static partial class Program
             "_loadedToken",
             BindingFlags.Instance | BindingFlags.NonPublic
         )!;
-        var originalContent = (Control)window.Content!;
+        Panel? previewPanel = null;
+        Border? sampleBadge = null;
         try
         {
             // Flush selection/layout events while commands are disabled, so merely showing
@@ -173,27 +174,20 @@ public static partial class Program
 
             // Test-only annotation, not a production demo mode. Everything underneath is
             // the actual DashboardView. The token is a known dummy, never a credential.
-            window.Content = null;
-            var annotated = new Grid();
-            annotated.Children.Add(originalContent);
-            annotated.Children.Add(
-                new Border
-                {
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Bottom,
-                    Margin = new Thickness(10),
-                    Padding = new Thickness(9, 5),
-                    CornerRadius = new CornerRadius(4),
-                    Background = new SolidColorBrush(Color.Parse("#FFF4DA")),
-                    Child = new TextBlock
-                    {
-                        Text = "SAMPLE DATA · OFFLINE PREVIEW",
-                        FontSize = 10,
-                        Foreground = new SolidColorBrush(Color.Parse("#715313")),
-                    },
-                }
-            );
-            window.Content = annotated;
+            // Overlay the annotation in the existing dashboard panel. Do not detach and
+            // reparent the DialogHost/tree: that disrupts headless TreeView subscriptions.
+            previewPanel = ((DockPanel)view.Content!).Children.OfType<Panel>().First(panel => panel is not StackPanel);
+            sampleBadge = new Border
+            {
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Bottom,
+                Margin = new Thickness(10),
+                Padding = new Thickness(9, 5),
+                CornerRadius = new CornerRadius(4),
+                Background = new SolidColorBrush(Color.Parse("#FFF4DA")),
+                Child = new TextBlock { Text = "SAMPLE DATA · OFFLINE PREVIEW", FontSize = 10, Foreground = new SolidColorBrush(Color.Parse("#715313")) },
+            };
+            previewPanel.Children.Add(sampleBadge);
             await CaptureAsync(window, Path.Combine(output, "desktop-export.png"));
         }
         finally
@@ -201,12 +195,8 @@ public static partial class Program
             dashboard.IsBusy = true;
             discordField.SetValue(dashboard, null);
             tokenField.SetValue(dashboard, null);
-            if (window.Content != originalContent)
-            {
-                if (window.Content is Grid grid)
-                    grid.Children.Clear();
-                window.Content = originalContent;
-            }
+            if (sampleBadge is not null)
+                previewPanel?.Children.Remove(sampleBadge);
             dashboard.IsBusy = false;
         }
     }
