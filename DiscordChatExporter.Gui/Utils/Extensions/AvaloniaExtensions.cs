@@ -1,3 +1,4 @@
+using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using PowerKit.Extensions;
@@ -19,7 +20,10 @@ internal static class AvaloniaExtensions
                 _ => null,
             };
 
-        public TopLevel? TryGetTopLevel() => lifetime.TryGetMainView()?.Pipe(TopLevel.GetTopLevel);
+        public TopLevel? TryGetTopLevel() =>
+            lifetime is IClassicDesktopStyleApplicationLifetime desktop
+                ? desktop.Windows.LastOrDefault(window => window.IsActive) ?? desktop.MainWindow
+                : lifetime.TryGetMainView()?.Pipe(TopLevel.GetTopLevel);
 
         public bool TryShutdown(int exitCode = 0)
         {

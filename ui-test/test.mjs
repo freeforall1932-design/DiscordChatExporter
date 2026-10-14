@@ -1,0 +1,674 @@
+// End-to-end test for the web interface served by "DiscordChatExporter.Cli gui".
+//
+// The test loads the real page into a DOM, drives it like a user would (clicking buttons,
+// filling in options, running commands) and checks both what the page shows and what the
+// server reports through its API.
+//
+// Usage:
+//   node test.mjs                        # against http://127.0.0.1:5000
+//   DCE_GUI_URL=http://localhost:5155 node test.mjs
+//   DCE_GUI_USE_LOCAL_ASSETS=1 node test.mjs   # use the assets from the working copy
+import { JSDOM, VirtualConsole } from "jsdom";
+import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+
+const BASE = process.env.DCE_GUI_URL || "http://127.0.0.1:5000";
+const USE_LOCAL = process.env.DCE_GUI_USE_LOCAL_ASSETS === "1";
+const LOCAL_DIR =
+  process.env.DCE_GUI_ASSETS_DIR ||
+  join(dirname(fileURLToPath(import.meta.url)), "..", "DiscordChatExporter.Cli", "Gui", "Assets");
+
+const failures = [];
+let checks = 0;
+
+function check(name, condition, extra = "") {
+  checks++;
+  if (condition) {
+    console.log(`  ok   ${name}`);
+  } else {
+    console.log(`  FAIL ${name}${extra ? " -> " + extra : ""}`);
+    failures.push(name + (extra ? " -> " + extra : ""));
+  }
+}
+
+const section = (name) => console.log(`\n${name}`);
+
+const readLocal = async (name) => readFile(`${LOCAL_DIR}/${name}`, "utf8");
+
+const html = USE_LOCAL ? await readLocal("index.html") : await (await fetch(`${BASE}/`)).text();
+const script = USE_LOCAL
+  ? await readLocal("app.js")
+  : await (await fetch(`${BASE}/app.js`)).text();
+const css = USE_LOCAL ? await readLocal("app.css") : await (await fetch(`${BASE}/app.css`)).text();
+
+const virtualConsole = new VirtualConsole();
+const pageErrors = [];
+virtualConsole.on("jsdomError", (e) => pageErrors.push(String(e)));
+virtualConsole.on("error", (...args) => pageErrors.push(args.join(" ")));
+
+const dom = new JSDOM(html, {
+  url: `${BASE}/`,
+  runScripts: "outside-only",
+  pretendToBeVisual: true,
+  virtualConsole,
+});
+
+const { window } = dom;
+window.fetch = (input, init) => fetch(new URL(input, BASE).toString(), init);
+window.localStorage.clear();
+
+window.eval(script + "\nwindow.__testLog = { append: appendLog, set: setLog }; window.__state = state;");
+
+const $ = (id) => window.document.getElementById(id);
+const $$ = (selector, root = window.document) => [...root.querySelectorAll(selector)];
+const click = (element) =>
+  element.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+const type = (element, value) => {
+  element.value = value;
+  element.dispatchEvent(new window.Event("input", { bubbles: true }));
+};
+const commandButton = (name) => $(`command-list`).querySelector(`[data-command="${name}"]`);
+
+const waitFor = async (predicate, description, timeout = 25000) => {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    if (predicate()) return true;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  console.log(`  FAIL timed out: ${description}`);
+  failures.push(`timeout: ${description}`);
+  return false;
+};
+
+const waitForAsync = async (predicate, description, timeout = 30000) => {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    if (await predicate()) return true;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  console.log(`  FAIL timed out: ${description}`);
+  failures.push(`timeout: ${description}`);
+  return false;
+};
+
+const api = async (path, options) => {
+  const response = await fetch(new URL(path, BASE).toString(), options);
+  const text = await response.text();
+  let json = null;
+  try {
+    json = JSON.parse(text);
+  } catch {}
+  return { status: response.status, json, text };
+};
+
+// —————————————————————————————————— UI ——————————————————————————————————
+
+section("1. startup");
+await waitFor(() => $$(".command").length > 0, "the command list to load");
+
+const commands = $$(".command").map((b) => b.dataset.command);
+console.log("  commands:", commands.join(", "));
+check("all 8 CLI commands are exposed as buttons", commands.length === 8, commands.join(","));
+check("the gui command is not listed", !commands.includes("gui"));
+check(
+  "the buttons are a single list without headings",
+  $$(".group-title, .command-group").length === 0,
+  `${$$(".group-title, .command-group").length} headings found`
+);
+check(
+  "the token guide sits right after the export commands",
+  commands[commands.length - 1] === "guide" && commands[commands.length - 2] === "exportall",
+  commands.join(",")
+);
+check("a command is selected on load", $("command-name").textContent.length > 0);
+check("the version is displayed", $("brand-meta").textContent.includes("999.9.9"));
+check("the working directory is displayed", $("working-dir").textContent.length > 1);
+check("the command line preview is rendered", $("cmdline-preview").textContent.length > 10);
+check(
+  "the options tab is open on a fresh page",
+  $("panel-options").classList.contains("active") && $$(".tab-panel.active").length === 1,
+  $$(".tab-panel.active").map((p) => p.id).join(",")
+);
+
+section("1b. quick-start presets");
+const presets = $$("#presets .preset");
+console.log("  presets:", presets.map((p) => p.dataset.preset).join(", "));
+check("the quick-start presets are offered", presets.length >= 6, `${presets.length} presets`);
+check(
+  "the preset row is visible",
+  !$("presets-bar").classList.contains("hidden"),
+  "the preset row is hidden"
+);
+check(
+  "presets carry a description",
+  presets.every((p) => p.title.length > 0),
+  "a preset has no tooltip"
+);
+
+const jsonPreset = presets.find((p) => p.dataset.preset === "export-everything-json");
+check("the JSON preset exists", !!jsonPreset);
+click(jsonPreset);
+check(
+  "the preset selects its command",
+  $("command-name").textContent === "exportall",
+  $("command-name").textContent
+);
+check(
+  "the preset fills in the format",
+  $("option-format")?.value === "Json",
+  $("option-format")?.value
+);
+check(
+  "the preset fills in the output path",
+  $("option-output")?.value === "./exports/",
+  $("option-output")?.value
+);
+check(
+  "the command line reflects the preset",
+  $("cmdline-preview").textContent.includes("--format Json") &&
+    $("cmdline-preview").textContent.includes("--output ./exports/"),
+  $("cmdline-preview").textContent
+);
+check(
+  "the applied preset is highlighted",
+  jsonPreset.dataset.active === "true",
+  jsonPreset.dataset.active
+);
+check(
+  "changing a value clears the highlight",
+  (() => {
+    type($("option-output"), "./somewhere-else/");
+    const active = jsonPreset.dataset.active;
+    type($("option-output"), "./exports/");
+    return active === "false";
+  })(),
+  "the highlight stayed on"
+);
+
+const personPreset = presets.find((p) => p.dataset.preset === "export-one-person");
+check("the one-person preset exists", !!personPreset);
+click(personPreset);
+check(
+  "the one-person preset uses a server export with a user filter",
+  $("command-name").textContent === "exportguild" &&
+    $("option-filter")?.value === "from:",
+  `${$("command-name").textContent} / ${$("option-filter")?.value}`
+);
+check(
+  "a preset that fills an advanced option reveals it",
+  $("advanced-toggle").checked === true && $("option-filter") !== null,
+  `advanced=${$("advanced-toggle").checked}`
+);
+
+section("2. token field");
+type($("token"), "test-token-value");
+check("the token is stored locally", window.localStorage.getItem("discordchatexporter.token") === "test-token-value");
+click($("token-reveal"));
+check("the reveal button shows the token", $("token").type === "text");
+click($("token-reveal"));
+check("the reveal button hides the token", $("token").type === "password");
+click($("token-clear"));
+check("the clear button forgets the token", $("token").value === "");
+type($("token"), "test-token-value");
+
+section("3. switching commands");
+click(commandButton("channels"));
+await waitFor(() => $("command-name").textContent === "channels", "channels to be selected");
+check("the title is shown", $("command-title").textContent.length > 0);
+check("a token badge is shown for commands that need one", !$("command-token-badge").classList.contains("hidden"));
+check("the form is generated", $$(".field").length >= 3, `${$$(".field").length} fields`);
+check(
+  "the enum option renders as a select",
+  [...$$("select")].some((s) => s.name === "include-threads" || s.id.includes("include-threads"))
+);
+check("validation is reported", $("validation").textContent.length > 0);
+check("run is disabled while required options are missing", $("run").disabled === true);
+check(
+  "the command line preview does not leak the token",
+  !$("cmdline-preview").textContent.includes("test-token-value")
+);
+
+section("4. filling in options");
+type($("option-guild"), "123456789012345678");
+check(
+  "the preview updates while typing",
+  $("cmdline-preview").textContent.includes("--guild 123456789012345678")
+);
+check("run is enabled once the form is valid", $("run").disabled === false);
+
+const includeVc = $("option-include-vc");
+if (includeVc) {
+  const before = includeVc.checked;
+  includeVc.checked = !before;
+  includeVc.dispatchEvent(new window.Event("change", { bubbles: true }));
+  check(
+    "boolean options are reflected in the preview",
+    $("cmdline-preview").textContent.includes(`--include-vc ${!before}`)
+  );
+}
+
+section("5. sequence options (chips)");
+click(commandButton("export"));
+await waitFor(() => $("command-name").textContent === "export", "export to be selected");
+
+const channelInput = $("option-channel");
+check("the channel option accepts multiple values", channelInput !== null);
+type(channelInput, "111111111111111111");
+channelInput.dispatchEvent(new window.KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+type(channelInput, "222222222222222222,333333333333333333");
+channelInput.dispatchEvent(new window.Event("blur", { bubbles: true }));
+
+const chips = $$(".chip").map((c) => c.textContent.replace(/[×✕x]/g, "").trim());
+console.log("  chips:", JSON.stringify(chips));
+check("typed and pasted values become chips", chips.length === 3, chips.join(","));
+check(
+  "sequence options are repeated on the command line",
+  $("cmdline-preview").textContent.includes("--channel 111111111111111111 --channel 222222222222222222")
+);
+
+section("6. running a command");
+click(commandButton("guide"));
+await waitFor(() => $("command-name").textContent === "guide", "guide to be selected");
+check("guide does not ask for a token", $("command-token-badge").classList.contains("hidden"));
+check("guide can be run", $("run").disabled === false);
+
+// The token is filled in, so that commands that don't accept --token must still work
+// (regression test: "--token" used to be passed to every command, including "guide")
+type($("token"), "test-token-value");
+
+click($("run"));
+await waitFor(() => /^Done\b/.test($("status").textContent), "the run to finish", 30000);
+
+const log = $("log").textContent;
+console.log("  log:", JSON.stringify(log.slice(0, 100)));
+check("the output is streamed into the console", log.includes("developer tools"));
+check("the executed command line is shown", log.includes("DiscordChatExporter.Cli guide"));
+check("the status is updated", /^Done\b/.test($("status").textContent), $("status").textContent);
+check(
+  "the finished status is short enough to fit next to the icons",
+  $("status").textContent.replace(/^Done /, "").length <= 16 &&
+    $("status").textContent.length <= 20,
+  $("status").textContent
+);
+check(
+  "the full status is available as a tooltip",
+  $("status").title === $("status").textContent,
+  $("status").title
+);
+check("the exit code is shown", $("run-badge").textContent.includes("0"), $("run-badge").textContent);
+check("run is available again", $("run").disabled === false);
+check("the log can be downloaded", $("log-download").disabled === false);
+
+section("7. raw command line");
+// Waits until both the server and the page agree that nothing is running, so that the
+// next command isn't refused as "still running"
+const idle = () =>
+  waitForAsync(
+    async () =>
+      (await api("/api/runs")).json.every((r) => r.state !== "running") &&
+      window.__state?.run?.state !== "running",
+    "the server and the page to be idle"
+  );
+
+const rawInput = $("raw-input");
+if (rawInput) {
+  // The run history is capped, so a new run is detected by its identifier rather than by
+  // the number of runs
+  const newestRun = async () => {
+    const runs = (await api("/api/runs")).json;
+    return runs[runs.length - 1] ?? null;
+  };
+
+  // Starts a command from the raw command line box and waits for it to finish, both on the
+  // server and in the page
+  const runRaw = async (commandLine) => {
+    await idle();
+    const before = (await newestRun())?.id ?? null;
+
+    type(rawInput, commandLine);
+    click($("raw-run"));
+
+    const started = await waitForAsync(
+      async () => ((await newestRun())?.id ?? null) !== before,
+      `a run of '${commandLine}' to be created`
+    );
+    if (!started) return null;
+
+    const run = await newestRun();
+    await waitForAsync(
+      async () => (await api(`/api/runs/${run.id}`)).json.state !== "running",
+      `the run of '${commandLine}' to finish`
+    );
+    await waitFor(
+      () => $("log").textContent.includes(`$ DiscordChatExporter.Cli ${run.command}`),
+      "the page to show the run",
+      15000
+    );
+
+    return (await api(`/api/runs/${run.id}`)).json;
+  };
+
+  const guideRun = await runRaw("guide");
+  check("raw commands are streamed into the console", $("log").textContent.includes("developer tools"));
+  check("raw commands finish successfully", guideRun?.state === "succeeded", JSON.stringify(guideRun).slice(0, 200));
+
+  const badRun = await runRaw("nonsense-command");
+  await waitFor(() => $("log").textContent.includes("Unrecognized"), "the error to be reported", 15000);
+  check("unknown commands fail", badRun?.state === "failed", JSON.stringify(badRun).slice(0, 200));
+  check("unknown commands are reported in the console", $("log").textContent.includes("Unrecognized"));
+  await waitFor(() => $("status").textContent.startsWith("Failed"), "the run to fail", 15000);
+
+  // Held here for the diagnostics below
+  globalThis.__lastRawRun = badRun;
+} else {
+  check("the raw command input exists", false);
+}
+
+section("8. validation errors");
+await idle();
+click(commandButton("export"));
+await waitFor(() => $("command-name").textContent === "export", "export to be selected");
+type($("option-channel"), "");
+for (const chip of $$(".chip-remove")) click(chip);
+type($("token"), "");
+check("export is disabled without a token", $("run").disabled === true, $("validation").textContent);
+type($("token"), "test-token-value");
+
+section("8b. progress frames");
+if (window.__testLog) {
+  window.__testLog.set("");
+  for (let i = 10; i <= 90; i += 10) {
+    window.__testLog.append(`Exporting #general (1/1)\n[${"#".repeat(i / 10)}${"-".repeat(9 - i / 10)}] ${i}%\n`);
+  }
+  const rendered = $("log").textContent;
+  const percentMatches = [...rendered.matchAll(/(\d+)%/g)].map((m) => m[1]);
+  check(
+    "progress frames are redrawn in place",
+    percentMatches.length <= 3 && percentMatches.includes("90"),
+    `rendered ${percentMatches.length} frames: ${JSON.stringify(rendered)}`
+  );
+  check("the completed frame is kept", rendered.includes("90%"), JSON.stringify(rendered));
+} else {
+  check("the log renderer is reachable from the outside", false);
+}
+
+section("9. theme");
+const initialTheme = window.document.documentElement.dataset.theme;
+click($("theme-toggle"));
+check(
+  "the theme toggles",
+  window.document.documentElement.dataset.theme !== initialTheme,
+  window.document.documentElement.dataset.theme
+);
+check("the theme is persisted", window.localStorage.getItem("discordchatexporter.theme") !== null);
+
+section("10. advanced options");
+if ($("advanced-toggle")) {
+  // A preset may have switched this on already, so start from a known state
+  $("advanced-toggle").checked = false;
+  $("advanced-toggle").dispatchEvent(new window.Event("change", { bubbles: true }));
+  const basicCount = $$(".field").length;
+
+  $("advanced-toggle").checked = true;
+  $("advanced-toggle").dispatchEvent(new window.Event("change", { bubbles: true }));
+  check(
+    "advanced options are revealed",
+    $$(".field").length > basicCount,
+    `${basicCount} -> ${$$(".field").length}`
+  );
+}
+
+section("11. keyboard shortcuts");
+click(commandButton("guilds"));
+window.document.dispatchEvent(
+  new window.KeyboardEvent("keydown", { key: "2", altKey: true, bubbles: true })
+);
+await waitFor(() => $("command-name").textContent === "channels", "alt+2 to select the second command");
+check("alt+number switches commands", $("command-name").textContent === "channels");
+
+check("no uncaught page errors", pageErrors.length === 0, pageErrors.join(" | "));
+
+// ————————————————————————————————— API —————————————————————————————————
+
+section("12. layout rules");
+
+// The interface can't be laid out in this environment, so the rules that keep it from
+// overflowing and colliding are checked directly in the stylesheet
+const cssRules = css.replace(/\s+/g, " ");
+
+const ruleFor = (selector) => {
+  const start = cssRules.indexOf(selector + " {");
+  if (start < 0) return "";
+  const end = cssRules.indexOf("}", start);
+  return cssRules.slice(start, end);
+};
+
+check(
+  "the page itself never scrolls",
+  /html, body \{[^}]*overflow: hidden/.test(cssRules),
+  ruleFor("body").slice(0, 120)
+);
+check(
+  "the command button can shrink with its content",
+  /min-width: 0/.test(ruleFor(".command")),
+  ruleFor(".command")
+);
+check(
+  "the command label and name are stacked",
+  /flex-direction: column/.test(ruleFor(".command-text")),
+  ruleFor(".command-text")
+);
+check(
+  "both lines of a command name truncate instead of overflowing",
+  /white-space: nowrap/.test(ruleFor(".command-name, .command-raw-name")) &&
+    /text-overflow: ellipsis/.test(ruleFor(".command-name, .command-raw-name")),
+  ruleFor(".command-name, .command-raw-name")
+);
+check(
+  "the command list scrolls vertically only",
+  /overflow-x: hidden/.test(ruleFor("#command-list")),
+  ruleFor("#command-list")
+);
+check(
+  "no space is reserved for group headings",
+  !cssRules.includes(".group-title"),
+  "group-title styles are still present"
+);
+const commandPadding = parseFloat((ruleFor(".command").match(/padding: ([\d.]+)px/) || [])[1] || 0);
+const commandMargin = parseFloat(
+  (ruleFor(".command").match(/margin-bottom: ([\d.]+)px/) || [])[1] || 0
+);
+// Two lines of text (title + command name) plus the padding and the margin of each row
+const estimatedListHeight = 8 * (commandPadding * 2 + 33 + commandMargin) + 24;
+check(
+  "all buttons fit in the sidebar without scrolling",
+  estimatedListHeight < 700,
+  `estimated ${estimatedListHeight}px`
+);
+check(
+  "the workspace does not scroll as a whole",
+  /overflow: hidden/.test(ruleFor(".workspace")),
+  ruleFor(".workspace")
+);
+check(
+  "panels scroll inside the fixed layout",
+  /overflow-y: auto/.test(ruleFor(".tab-panel")),
+  ruleFor(".tab-panel")
+);
+check(
+  "the status pill truncates instead of overlapping the icons",
+  /text-overflow: ellipsis/.test(ruleFor(".pill")) && /min-width: 0/.test(ruleFor(".pill")),
+  ruleFor(".pill")
+);
+check(
+  "there are responsive rules for small windows",
+  cssRules.includes("@media (max-width: 900px)") &&
+    cssRules.includes("@media (max-height: 780px)"),
+  "missing breakpoints"
+);
+
+section("13. tabs");
+const tabs = $$(".tab").map((t) => t.id);
+console.log("  tabs:", tabs.join(", "));
+check(
+  "the interface has Options, Output and Debug tabs",
+  tabs.join(",") === "tab-options,tab-output,tab-debug",
+  tabs.join(",")
+);
+click($("tab-options"));
+check("the options tab opens", $("panel-options").classList.contains("active"));
+check(
+  "only one panel is open at a time",
+  $$(".tab-panel.active").length === 1,
+  $$(".tab-panel.active").map((p) => p.id).join(",")
+);
+
+click($("tab-output"));
+check(
+  "the output panel opens",
+  $("panel-output").classList.contains("active") &&
+    !$("panel-options").classList.contains("active")
+);
+check(
+  "the open tab is marked for assistive technology",
+  $("tab-output").getAttribute("aria-selected") === "true"
+);
+check(
+  "the output panel is linked to its tab",
+  $("panel-output").getAttribute("aria-labelledby") === "tab-output"
+);
+
+click($("tab-debug"));
+await waitFor(() => $$("#debug-env dt").length > 0, "the debug info to load");
+check("the debug panel opens", $("panel-debug").classList.contains("active"));
+const envLabels = $$("#debug-env dt").map((dt) => dt.textContent);
+console.log("  debug info:", envLabels.join(", "));
+check(
+  "the environment is listed",
+  envLabels.includes("Version") && envLabels.includes("Working directory"),
+  envLabels.join(",")
+);
+check("the runtime is listed", envLabels.includes("Runtime"));
+check(
+  "the browser and viewport are listed",
+  envLabels.includes("Browser") && envLabels.includes("Viewport"),
+  envLabels.join(",")
+);
+check(
+  "activity events are listed",
+  $$("#debug-events .debug-event").length > 0,
+  `${$$("#debug-events .debug-event").length} events`
+);
+check("the event count is shown on the tab", $("debug-count").textContent.length > 0);
+check(
+  "the diagnostics hide the token",
+  !$("debug-events").textContent.includes("test-token-value") &&
+    !$("debug-env").textContent.includes("test-token-value")
+);
+
+click($("tab-options"));
+check("switching back shows the form", $("panel-options").classList.contains("active"));
+
+section("14. running switches to the output tab");
+await idle();
+click(commandButton("guide"));
+await waitFor(() => $("command-name").textContent === "guide", "guide to be selected");
+check("the options tab is open before running", $("panel-options").classList.contains("active"));
+click($("run"));
+await waitFor(
+  () => $("panel-output").classList.contains("active"),
+  "the output tab to open automatically",
+  10000
+);
+check("running a command opens the output tab", $("panel-output").classList.contains("active"));
+await waitFor(() => /^Done\b/.test($("status").textContent), "the run to finish", 30000);
+check(
+  "the output tab shows the run state",
+  /succeeded|failed|cancelled/.test($("output-dot").className),
+  $("output-dot").className
+);
+check("the completed output is visible", $("log").textContent.includes("developer tools"));
+
+section("15. server API");
+const info = await api("/api/info");
+check("GET /api/info returns the command catalog", info.status === 200 && info.json?.commands?.length === 8);
+check(
+  "the catalog carries no token option",
+  !JSON.stringify(info.json).includes('"name":"token"'),
+  "token option leaked into the catalog"
+);
+check(
+  "options carry a kind and a label",
+  info.json.commands.every((c) => c.options.every((o) => o.kind && o.label))
+);
+const exportCommand = info.json.commands.find((c) => c.name === "export");
+const kinds = Object.fromEntries(exportCommand.options.map((o) => [o.name, o.kind]));
+console.log("  export option kinds:", JSON.stringify(kinds));
+check("channels are a list option", kinds.channel === "list", kinds.channel);
+check("format is a select", kinds.format === "select", kinds.format);
+check("output is a path", kinds.output === "path", kinds.output);
+check("media is a boolean", kinds.media === "bool", kinds.media);
+check("after is a date", kinds.after === "date", kinds.after);
+check("export claims to need a token", exportCommand.requiresToken === true);
+
+const runsList = await api("/api/runs");
+check("GET /api/runs returns the run history", runsList.status === 200 && Array.isArray(runsList.json));
+
+const invalid = await api("/api/runs", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ command: "channels", options: {} }),
+});
+check("invalid requests are rejected", invalid.status === 400 && invalid.json?.details?.length > 0, JSON.stringify(invalid.json));
+
+const unknown = await api("/api/runs", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ command: "nope" }),
+});
+check("unknown commands are rejected", unknown.status === 400, String(unknown.status));
+
+const crossOrigin = await api("/api/info", { headers: { origin: "https://evil.example.com" } });
+check("cross-origin requests are rejected", crossOrigin.status === 403, String(crossOrigin.status));
+
+const guideRun = await api("/api/runs", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ command: "guide", options: {}, token: "test-token-value" }),
+});
+check("guide runs with an unrelated token present", guideRun.status === 201, JSON.stringify(guideRun.json));
+
+let finalRun = null;
+if (guideRun.status === 201) {
+  const runId = guideRun.json.id;
+  for (let i = 0; i < 60; i++) {
+    finalRun = await api(`/api/runs/${runId}?cursor=0&wait=1000`);
+    if (finalRun.json.state !== "running") break;
+  }
+  check("the run finishes successfully", finalRun.json.state === "succeeded", JSON.stringify(finalRun.json).slice(0, 300));
+  check("the output is captured", /developer tools/i.test(finalRun.json.output), finalRun.json.output.slice(0, 200));
+  check("the command line is reported", finalRun.json.commandLine.includes("DiscordChatExporter.Cli guide"));
+  check("the token is not present in the command line", !finalRun.json.commandLine.includes("test-token-value"));
+
+  const logFile = await api(`/api/runs/${runId}/log`);
+  check("the log can be downloaded from the server", logFile.status === 200 && /developer tools/i.test(logFile.text));
+}
+
+console.log(`\n${checks - failures.length}/${checks} checks passed`);
+if (failures.length > 0) {
+  console.log("\nFailures:");
+  for (const failure of failures) console.log(`  - ${failure}`);
+
+  console.log("\nDiagnostics:");
+  console.log("  status:", JSON.stringify($("status").textContent));
+  console.log("  validation:", JSON.stringify($("validation").textContent));
+  console.log("  toasts:", JSON.stringify([...$("toasts").children].map((t) => t.textContent)));
+  console.log("  page run:", JSON.stringify(window.__state?.run ?? null).slice(0, 300));
+  console.log("  unknown commands run:", JSON.stringify(globalThis.__lastRawRun ?? null).slice(0, 300));
+  console.log("  log:", JSON.stringify($("log").textContent.slice(0, 300)));
+  const runs = await api("/api/runs");
+  console.log("  server runs:", JSON.stringify(runs.json.map((r) => `${r.command}:${r.state}`)));
+  process.exit(1);
+}
+console.log("UI TEST PASSED");

@@ -1,0 +1,163 @@
+
+1. startup
+  commands: guilds, channels, dm, export, exportguild, exportdm, exportall, guide
+  ok   all 8 CLI commands are exposed as buttons
+  ok   the gui command is not listed
+  ok   the buttons are a single list without headings
+  ok   the token guide sits right after the export commands
+  ok   a command is selected on load
+  ok   the version is displayed
+  ok   the working directory is displayed
+  ok   the command line preview is rendered
+  ok   the options tab is open on a fresh page
+
+1b. quick-start presets
+  presets: export-everything-html, export-everything-json, export-server, export-dms, export-one-person, export-with-media, list-servers, guide
+  ok   the quick-start presets are offered
+  ok   the preset row is visible
+  ok   presets carry a description
+  ok   the JSON preset exists
+  ok   the preset selects its command
+  ok   the preset fills in the format
+  ok   the preset fills in the output path
+  ok   the command line reflects the preset
+  ok   the applied preset is highlighted
+  ok   changing a value clears the highlight
+  ok   the one-person preset exists
+  ok   the one-person preset uses a server export with a user filter
+
+2. token field
+  ok   the token is stored locally
+  ok   the reveal button shows the token
+  ok   the reveal button hides the token
+  ok   the clear button forgets the token
+
+3. switching commands
+  ok   the title is shown
+  ok   a token badge is shown for commands that need one
+  ok   the form is generated
+  ok   the enum option renders as a select
+  ok   validation is reported
+  ok   run is disabled while required options are missing
+  ok   the command line preview does not leak the token
+
+4. filling in options
+  ok   the preview updates while typing
+  ok   run is enabled once the form is valid
+  ok   boolean options are reflected in the preview
+
+5. sequence options (chips)
+  ok   the channel option accepts multiple values
+  chips: ["333333333333333333","222222222222222222","111111111111111111"]
+  ok   typed and pasted values become chips
+  ok   sequence options are repeated on the command line
+
+6. running a command
+  ok   guide does not ask for a token
+  ok   guide can be run
+  log: "$ DiscordChatExporter.Cli guide\n\nTo get the token for your personal account:\n *  Automating user acc"
+  ok   the output is streamed into the console
+  ok   the executed command line is shown
+  ok   the status is updated
+  ok   the finished status is short enough to fit next to the icons
+  ok   the full status is available as a tooltip
+  ok   the exit code is shown
+  ok   run is available again
+  ok   the log can be downloaded
+
+7. raw command line
+  ok   raw commands are streamed into the console
+  ok   raw commands finish successfully
+  ok   unknown commands fail
+  ok   unknown commands are reported in the console
+
+8. validation errors
+  ok   export is disabled without a token
+
+8b. progress frames
+  ok   progress frames are redrawn in place
+  ok   the completed frame is kept
+
+9. theme
+  ok   the theme toggles
+  ok   the theme is persisted
+
+10. advanced options
+  FAIL advanced options are revealed -> 20 -> 20
+
+11. keyboard shortcuts
+  ok   alt+number switches commands
+  ok   no uncaught page errors
+
+12. layout rules
+  ok   the page itself never scrolls
+  ok   the command button can shrink with its content
+  ok   the command label and name are stacked
+  ok   both lines of a command name truncate instead of overflowing
+  ok   the command list scrolls vertically only
+  ok   no space is reserved for group headings
+  ok   all buttons fit in the sidebar without scrolling
+  ok   the workspace does not scroll as a whole
+  ok   panels scroll inside the fixed layout
+  ok   the status pill truncates instead of overlapping the icons
+  ok   there are responsive rules for small windows
+
+13. tabs
+  tabs: tab-options, tab-output, tab-debug
+  ok   the interface has Options, Output and Debug tabs
+  ok   the options tab opens
+  ok   only one panel is open at a time
+  ok   the output panel opens
+  ok   the open tab is marked for assistive technology
+  ok   the output panel is linked to its tab
+  ok   the debug panel opens
+  debug info: Version, Executable, Web interface, Working directory, Started, Runtime, Requests served, Network access, Token from environment, Browser, Viewport
+  ok   the environment is listed
+  ok   the runtime is listed
+  ok   the browser and viewport are listed
+  ok   activity events are listed
+  ok   the event count is shown on the tab
+  ok   the diagnostics hide the token
+  ok   switching back shows the form
+
+14. running switches to the output tab
+  ok   the options tab is open before running
+  ok   running a command opens the output tab
+  ok   the output tab shows the run state
+  ok   the completed output is visible
+
+15. server API
+  ok   GET /api/info returns the command catalog
+  ok   the catalog carries no token option
+  ok   options carry a kind and a label
+  export option kinds: {"channel":"list","output":"path","format":"select","after":"date","before":"date","partition":"partition","include-threads":"select","filter":"filter","parallel":"number","reverse":"bool","markdown":"bool","media":"bool","reuse-media":"bool","media-dir":"path","dateformat":"text","locale":"text","utc":"bool","fuck-russia":"bool","bot":"bool","respect-rate-limits":"bool"}
+  ok   channels are a list option
+  ok   format is a select
+  ok   output is a path
+  ok   media is a boolean
+  ok   after is a date
+  ok   export claims to need a token
+  ok   GET /api/runs returns the run history
+  ok   invalid requests are rejected
+  ok   unknown commands are rejected
+  ok   cross-origin requests are rejected
+  ok   guide runs with an unrelated token present
+  ok   the run finishes successfully
+  ok   the output is captured
+  ok   the command line is reported
+  ok   the token is not present in the command line
+  ok   the log can be downloaded from the server
+
+107/108 checks passed
+
+Failures:
+  - advanced options are revealed -> 20 -> 20
+
+Diagnostics:
+  status: "Done guide"
+  validation: ""
+  toasts: ["Preset applied: Export everything (JSON). Review the fields and press Run.","Preset applied: Only one person's messages. Review the fields and press Run.","The saved token was removed from this browser.","'guide' finished successfully.","'guide' finished successfully.","'nonsense-command' failed with exit code 1.","'guide' finished successfully."]
+  page run: {"id":"139060052b77","command":"guide","commandLine":"DiscordChatExporter.Cli guide","state":"succeeded","exitCode":0,"startedAt":"2026-10-08T16:22:01.5633742+00:00","finishedAt":"2026-10-08T16:22:01.5640145+00:00","cursor":1396,"output":"To get the token for your personal account:\n *  Automating u
+  unknown commands run: {"id":"ad180ae72288","command":"nonsense-command","commandLine":"DiscordChatExporter.Cli nonsense-command","state":"failed","exitCode":1,"startedAt":"2026-10-08T16:22:01.3184898+00:00","finishedAt":"2026-10-08T16:22:01.3319545+00:00","cursor":999,"output":"Unrecognized parameter(s):\n<nonsense-comma
+  log: "$ DiscordChatExporter.Cli guide\n\nTo get the token for your personal account:\n *  Automating user accounts is technically against TOS — USE AT YOUR OWN RISK!\n 1. Open Discord in your web browser and login\n 2. Open any server or direct message channel\n 3. Press Ctrl+Shift+I to show developer tools\n 4."
+  server runs: ["guide:succeeded","guide:succeeded","nonsense-command:failed","guide:succeeded","guide:succeeded"]

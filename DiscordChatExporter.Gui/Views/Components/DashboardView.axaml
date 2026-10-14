@@ -18,11 +18,12 @@
       DockPanel.Dock="Top"
       Orientation="Vertical"
     >
-      <Grid Margin="12,12,8,12" ColumnDefinitions="*,Auto">
+      <Grid Margin="12,12,8,12" ColumnDefinitions="*,Auto,Auto">
         <materialStyles:Card Grid.Column="0">
           <!--  Token  -->
           <TextBox
             x:Name="TokenValueTextBox"
+            IsEnabled="{Binding IsWorkAllowed}"
             FontSize="16"
             PasswordChar="*"
             PlaceholderText="{Binding LocalizationManager.TokenPlaceholderText}"
@@ -56,9 +57,25 @@
           </TextBox>
         </materialStyles:Card>
 
+        <!-- Optional advanced tools; the familiar server/channel screen stays compact. -->
+        <Button
+          x:Name="CommandsToolsButton"
+          Grid.Column="1"
+          Margin="8,0,0,0"
+          Padding="8"
+          VerticalAlignment="Center"
+          Click="CommandsButton_OnClick"
+          Foreground="{DynamicResource MaterialDarkForegroundBrush}"
+          Theme="{DynamicResource MaterialFlatButton}"
+          ToolTip.Tip="{Binding LocalizationManager.CommandsTooltip}"
+          AutomationProperties.Name="{Binding LocalizationManager.CommandsTooltip}"
+        >
+          <materialIcons:MaterialIcon Width="24" Height="24" Kind="Console" />
+        </Button>
+
         <!--  Settings button  -->
         <Button
-          Grid.Column="1"
+          Grid.Column="2"
           Margin="8,0,0,0"
           Padding="8"
           VerticalAlignment="Center"
@@ -84,7 +101,7 @@
     <Panel
       Background="{DynamicResource MaterialCardBackgroundBrush}"
       DockPanel.Dock="Bottom"
-      IsEnabled="{Binding !IsBusy}"
+      IsEnabled="{Binding IsWorkAllowed}"
     >
       <Panel.Styles>
         <Style Selector="Panel">
@@ -304,6 +321,7 @@
 
       <!--  Export button  -->
       <Button
+        x:Name="ExportButton"
         Width="56"
         Height="56"
         Margin="32,24"

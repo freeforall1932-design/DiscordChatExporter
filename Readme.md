@@ -55,6 +55,13 @@ To learn more about the war and how you can help, [click here](https://tyrrrz.me
   - 📦 [AUR](https://aur.archlinux.org/packages/discord-chat-exporter-cli): `yay -S discord-chat-exporter-cli` (community-maintained)
   - 📦 [Nix](https://search.nixos.org/packages?show=discordchatexporter-cli): `nix-shell -p discordchatexporter-cli` (community-maintained)
 
+> [!TIP]
+> **This development branch** adds optional native **Command tools** to the existing compact desktop GUI, plus an
+> optional browser frontend (`DiscordChatExporter.Cli gui`). Both expose the existing CLI commands, presets,
+> live output and diagnostics through the same shared C# command layer. These additions are **not yet in the
+> upstream stable downloads above**. See [Using the GUI](.docs/Using-the-GUI.md#native-commands-workspace-this-branch)
+> and [Using the web interface](.docs/Using-the-Web-GUI.md).
+
 > [!IMPORTANT]
 > To launch the GUI version of the app on MacOS, you may need to first remove the downloaded file from quarantine.
 > You can do that by running the following command in the terminal: `xattr -rd com.apple.quarantine DiscordChatExporter.app`.
@@ -67,7 +74,7 @@ To learn more about the war and how you can help, [click here](https://tyrrrz.me
 
 ## Features
 
-- Cross-platform graphical and command-line interfaces
+- Cross-platform graphical and command-line interfaces, plus an optional web interface for the CLI
 - Authentication via either a user or a bot token
 - Multiple output formats: HTML (dark/light), TXT, CSV, JSON
 - Support for markdown, attachments, embeds, emoji, and other rich media features

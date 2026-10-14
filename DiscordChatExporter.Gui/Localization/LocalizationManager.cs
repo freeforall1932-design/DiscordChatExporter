@@ -30,6 +30,8 @@ public partial class LocalizationManager : ObservableObject, IDisposable
     [ObservableProperty]
     public partial Language Language { get; set; } = Language.System;
 
+    public string CommandsTooltip => Get();
+
     private string Get([CallerMemberName] string? key = null)
     {
         if (string.IsNullOrWhiteSpace(key))

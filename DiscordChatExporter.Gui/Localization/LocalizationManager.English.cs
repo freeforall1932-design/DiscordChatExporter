@@ -10,6 +10,7 @@ public partial class LocalizationManager
             // Dashboard
             [nameof(PullGuildsTooltip)] = "Pull available servers and channels (Enter)",
             [nameof(SettingsTooltip)] = "Settings",
+            [nameof(CommandsTooltip)] = "Open command tools: presets, Output and Debug",
             [nameof(LastMessageSentTooltip)] = "Last message sent:",
             [nameof(TokenPlaceholderText)] = "Token",
             // Token instructions (personal account)

@@ -1,0 +1,12 @@
+{
+  "name": "discordchatexporter-web-gui-test",
+  "private": true,
+  "description": "End-to-end test for the web interface served by the CLI",
+  "type": "module",
+  "scripts": {
+    "test": "node test.mjs"
+  },
+  "devDependencies": {
+    "jsdom": "^27.0.0"
+  }
+}

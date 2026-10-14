@@ -16,6 +16,9 @@ public class ViewModelManager(IServiceProvider services, LocalizationManager loc
     public DashboardViewModel GetDashboardViewModel() =>
         services.GetRequiredService<DashboardViewModel>();
 
+    public CommandsViewModel GetCommandsViewModel() =>
+        services.GetRequiredService<CommandsViewModel>();
+
     public ExportSetupViewModel GetExportSetupViewModel(
         Guild guild,
         IReadOnlyList<Channel> channels

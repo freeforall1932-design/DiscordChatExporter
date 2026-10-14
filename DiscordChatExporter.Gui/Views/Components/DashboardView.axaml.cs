@@ -16,6 +16,12 @@ public partial class DashboardView : UserControl<DashboardViewModel>
     private void UserControl_OnLoaded(object? sender, RoutedEventArgs args) =>
         TokenValueTextBox.Focus();
 
+    private void CommandsButton_OnClick(object? sender, RoutedEventArgs args)
+    {
+        if (TopLevel.GetTopLevel(this) is Window owner)
+            DataContext.OpenCommands(owner);
+    }
+
     private void AvailableGuildsListBox_OnSelectionChanged(
         object? sender,
         SelectionChangedEventArgs args
